@@ -10,12 +10,14 @@ export default function SesionEnVivo() {
   const [modal, setModal] = useState(null); // aprendiz para registro manual
   const [manual, setManual] = useState({ estado: "presente", motivo: "" });
   const [mensaje, setMensaje] = useState(null);
+  const [plazo, setPlazo] = useState(72);
   const socketRef = useRef(null);
 
   const cargar = () => api(`/sesiones/${id}`).then(setSesion).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
 
   useEffect(() => {
     cargar();
+    api("/configuracion").then((c) => setPlazo(c.horas_justificacion));
     const socket = io();
     socketRef.current = socket;
     socket.emit("unirse_sesion", id);
@@ -45,7 +47,9 @@ export default function SesionEnVivo() {
   }
 
   async function cerrar() {
-    if (!confirm("Al cerrar, los aprendices sin marca quedarán AUSENTES y recibirán el enlace de justificación (72 horas). ¿Cerrar la sesión?")) return;
+    const h = Number(plazo);
+    const texto = h % 24 === 0 ? `${h / 24} día(s)` : `${h} horas`;
+    if (!confirm(`Al cerrar, los aprendices sin marca quedarán AUSENTES y recibirán el enlace de justificación (${texto}). ¿Cerrar la sesión?`)) return;
     try {
       const r = await api(`/sesiones/${id}/cerrar`, { method: "POST" });
       setMensaje({ tipo: "exito", texto: r.mensaje }); cargar();

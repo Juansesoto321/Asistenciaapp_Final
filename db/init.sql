@@ -176,6 +176,7 @@ CREATE TABLE IF NOT EXISTS justificacion (
   id_asistencia    INTEGER NOT NULL UNIQUE REFERENCES asistencia(id_asistencia),
   token            VARCHAR(100) NOT NULL UNIQUE,  -- enlace enviado por correo
   expira_en        TIMESTAMPTZ NOT NULL,           -- 72 horas después de la ausencia
+  tipo             VARCHAR(40) CHECK (tipo IN ('cita_medica','incapacidad_medica','calamidad_domestica','diligencia_legal','duelo','otro')),
   descripcion      TEXT,
   nombre_archivo   VARCHAR(255),
   archivo_datos    TEXT,                           -- adjunto en base64 (demo)

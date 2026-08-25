@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../servicios/api";
+
+const ETIQUETA_SOPORTE = {
+  pendiente: "Por cargar",
+  enviada: "En revisión",
+  aprobada: "Aprobado",
+  rechazada: "Rechazado",
+  vencida: "Plazo vencido",
+};
 
 function Anillo({ porcentaje, minimo }) {
   const critico = porcentaje < minimo;
@@ -61,7 +70,7 @@ export default function MiAsistencia() {
       </>)}
 
       <table className="tabla">
-        <thead><tr><th>Fecha</th><th>Estado</th><th>Hora de marca</th><th>Método</th><th>Observación</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Estado</th><th>Hora de marca</th><th>Método</th><th>Observación</th><th>Soporte</th></tr></thead>
         <tbody>
           {datos.detalle.map((d, i) => (
             <tr key={i}>
@@ -70,9 +79,16 @@ export default function MiAsistencia() {
               <td>{d.hora || "—"}</td>
               <td><span className={`insignia ${d.metodo}`}>{d.metodo}</span></td>
               <td>{d.observacion || "—"}</td>
+              <td>
+                {d.estado_soporte === "pendiente" ? (
+                  <Link to={`/justificar/${d.token_soporte}`} className="boton mini">Cargar soporte →</Link>
+                ) : d.estado_soporte ? (
+                  <span className={`insignia ${d.estado_soporte}`}>{ETIQUETA_SOPORTE[d.estado_soporte] || d.estado_soporte}</span>
+                ) : "—"}
+              </td>
             </tr>
           ))}
-          {!datos.detalle.length && <tr><td colSpan={5}><div className="vacio">Aún no tienes registros de asistencia.</div></td></tr>}
+          {!datos.detalle.length && <tr><td colSpan={6}><div className="vacio">Aún no tienes registros de asistencia.</div></td></tr>}
         </tbody>
       </table>
     </>

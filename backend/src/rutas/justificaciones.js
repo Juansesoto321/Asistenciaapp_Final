@@ -9,10 +9,20 @@ const { autenticar, autorizar } = require("../middleware/autenticar");
 
 const router = express.Router();
 
+const TIPOS_VALIDOS = ["cita_medica", "incapacidad_medica", "calamidad_domestica", "diligencia_legal", "duelo", "otro"];
+const TIPOS_SIN_FOTO_OBLIGATORIA = ["calamidad_domestica", "duelo"];
+
+// Texto legible del plazo configurado (ej. "5 días" o "18 horas")
+async function textoPlazo() {
+  const r = await pool.query("SELECT valor FROM configuracion WHERE clave = 'horas_justificacion'");
+  const horas = Number(r.rows[0]?.valor || 72);
+  return horas % 24 === 0 ? `${horas / 24} día(s)` : `${horas} horas`;
+}
+
 // --- PUBLICO (acceso por token del correo, sin login) ---
 router.get("/token/:token", async (req, res) => {
   const r = await pool.query(
-    `SELECT j.id_justificacion, j.estado, j.expira_en, j.descripcion,
+    `SELECT j.id_justificacion, j.estado, j.expira_en, j.tipo, j.descripcion,
             s.fecha, f.numero_ficha, f.programa, u.nombres, u.apellidos
      FROM justificacion j
      JOIN asistencia a ON a.id_asistencia = j.id_asistencia
@@ -26,23 +36,29 @@ router.get("/token/:token", async (req, res) => {
   if (!r.rows[0]) return res.status(404).json({ mensaje: "Enlace de justificación no válido" });
   const j = r.rows[0];
   if (new Date(j.expira_en) < new Date() && j.estado === "pendiente")
-    return res.status(410).json({ mensaje: "El plazo de 72 horas para justificar venció", vencida: true });
+    return res.status(410).json({ mensaje: `El plazo de ${await textoPlazo()} para justificar venció`, vencida: true });
   res.json(j);
 });
 
 router.post("/token/:token", async (req, res) => {
   try {
-    const { descripcion, nombre_archivo, archivo_datos } = req.body;
+    const { tipo, descripcion, nombre_archivo, archivo_datos } = req.body;
+    if (!TIPOS_VALIDOS.includes(tipo)) return res.status(400).json({ mensaje: "Selecciona un tipo de justificación válido" });
     if (!descripcion?.trim()) return res.status(400).json({ mensaje: "Describe el motivo de tu inasistencia" });
+    const fotoObligatoria = !TIPOS_SIN_FOTO_OBLIGATORIA.includes(tipo);
+    if (fotoObligatoria && !archivo_datos)
+      return res.status(400).json({ mensaje: "Adjunta una foto del soporte para este tipo de justificación" });
+    if (archivo_datos && !/^data:image\//.test(archivo_datos))
+      return res.status(400).json({ mensaje: "El soporte debe ser una foto (imagen)" });
     const r = await pool.query(
-      `UPDATE justificacion SET descripcion = $1, nombre_archivo = $2, archivo_datos = $3,
+      `UPDATE justificacion SET tipo = $1, descripcion = $2, nombre_archivo = $3, archivo_datos = $4,
         estado = 'enviada', enviada_en = NOW()
-       WHERE token = $4 AND estado = 'pendiente' AND expira_en > NOW()
+       WHERE token = $5 AND estado = 'pendiente' AND expira_en > NOW()
        RETURNING id_justificacion, id_asistencia`,
-      [descripcion, nombre_archivo || null, archivo_datos || null, req.params.token]
+      [tipo, descripcion, nombre_archivo || null, archivo_datos || null, req.params.token]
     );
     if (!r.rows[0])
-      return res.status(410).json({ mensaje: "El enlace ya fue usado o el plazo de 72 horas venció" });
+      return res.status(410).json({ mensaje: `El enlace ya fue usado o el plazo de ${await textoPlazo()} venció` });
 
     // Notificar al instructor titular
     await pool.query(
@@ -66,12 +82,26 @@ router.post("/token/:token", async (req, res) => {
 // --- AUTENTICADO ---
 router.use(autenticar);
 
+// Un instructor solo puede ver/validar justificaciones de fichas donde es el titular; el admin, todas.
+async function esPropietario(req, idJustificacion) {
+  if (req.usuario.rol === "administrador") return true;
+  const r = await pool.query(
+    `SELECT 1 FROM justificacion j
+     JOIN asistencia a ON a.id_asistencia = j.id_asistencia
+     JOIN sesion_clase s ON s.id_sesion = a.id_sesion
+     JOIN horario h ON h.id_horario = s.id_horario
+     WHERE j.id_justificacion = $1 AND h.id_instructor = $2`,
+    [idJustificacion, req.usuario.id]
+  );
+  return !!r.rows[0];
+}
+
 // Bandeja del instructor/admin
 router.get("/", autorizar("instructor", "administrador"), async (req, res) => {
   const filtro = req.usuario.rol === "instructor" ? "AND h.id_instructor = $1" : "";
   const valores = req.usuario.rol === "instructor" ? [req.usuario.id] : [];
   const r = await pool.query(
-    `SELECT j.id_justificacion, j.estado, j.descripcion, j.nombre_archivo, j.enviada_en, j.expira_en,
+    `SELECT j.id_justificacion, j.estado, j.tipo, j.descripcion, j.nombre_archivo, j.enviada_en, j.expira_en,
             s.fecha, f.numero_ficha, u.nombres, u.apellidos, u.documento
      FROM justificacion j
      JOIN asistencia a ON a.id_asistencia = j.id_asistencia
@@ -88,6 +118,8 @@ router.get("/", autorizar("instructor", "administrador"), async (req, res) => {
 
 // Descargar/ver adjunto
 router.get("/:id/archivo", autorizar("instructor", "administrador"), async (req, res) => {
+  if (!(await esPropietario(req, req.params.id)))
+    return res.status(403).json({ mensaje: "No tienes permisos para ver este archivo" });
   const r = await pool.query("SELECT nombre_archivo, archivo_datos FROM justificacion WHERE id_justificacion = $1", [req.params.id]);
   if (!r.rows[0]?.archivo_datos) return res.status(404).json({ mensaje: "Sin adjunto" });
   res.json(r.rows[0]);
@@ -95,6 +127,8 @@ router.get("/:id/archivo", autorizar("instructor", "administrador"), async (req,
 
 // CU-24: aprobar / rechazar
 router.patch("/:id", autorizar("instructor", "administrador"), async (req, res) => {
+  if (!(await esPropietario(req, req.params.id)))
+    return res.status(403).json({ mensaje: "No tienes permisos para validar esta justificación" });
   const cliente = await pool.connect();
   try {
     const { estado } = req.body; // aprobada | rechazada

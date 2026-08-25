@@ -1,13 +1,31 @@
 import { useEffect, useState } from "react";
 import { api } from "../servicios/api";
 
+function textoPlazo(horas) {
+  const h = Number(horas || 72);
+  return h % 24 === 0 ? `${h / 24} día(s)` : `${h} horas`;
+}
+
+const ETIQUETA_TIPO = {
+  cita_medica: "Cita médica",
+  incapacidad_medica: "Incapacidad médica",
+  calamidad_domestica: "Calamidad doméstica",
+  diligencia_legal: "Diligencia legal / trámite obligatorio",
+  duelo: "Duelo (fallecimiento familiar)",
+  otro: "Otro",
+};
+
 export default function Justificaciones() {
   const [lista, setLista] = useState([]);
   const [detalle, setDetalle] = useState(null);
   const [mensaje, setMensaje] = useState(null);
+  const [plazo, setPlazo] = useState(72);
 
   const cargar = () => api("/justificaciones").then(setLista).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    cargar();
+    api("/configuracion").then((c) => setPlazo(c.horas_justificacion));
+  }, []);
 
   async function validar(j, estado) {
     try {
@@ -28,24 +46,25 @@ export default function Justificaciones() {
     <>
       <div className="cabecera-pagina">
         <div><h1>Justificaciones de inasistencia</h1>
-        <p>Los aprendices tienen 72 horas para cargar su excusa. Al aprobarla, la ausencia pasa a "justificada".</p></div>
+        <p>Los aprendices tienen {textoPlazo(plazo)} para cargar su excusa. Al aprobarla, la ausencia pasa a "justificada".</p></div>
       </div>
       {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
 
       <table className="tabla">
-        <thead><tr><th>Fecha clase</th><th>Aprendiz</th><th>Ficha</th><th>Enviada</th><th>Estado</th><th></th></tr></thead>
+        <thead><tr><th>Fecha clase</th><th>Aprendiz</th><th>Ficha</th><th>Tipo</th><th>Enviada</th><th>Estado</th><th></th></tr></thead>
         <tbody>
           {lista.map((j) => (
             <tr key={j.id_justificacion}>
               <td>{new Date(j.fecha).toLocaleDateString("es-CO")}</td>
               <td>{j.nombres} {j.apellidos}</td>
               <td>{j.numero_ficha}</td>
+              <td>{ETIQUETA_TIPO[j.tipo] || "—"}</td>
               <td>{j.enviada_en ? new Date(j.enviada_en).toLocaleString("es-CO") : "—"}</td>
               <td><span className={`insignia ${j.estado}`}>{j.estado}</span></td>
               <td><button className="boton mini suave" onClick={() => setDetalle(j)}>Revisar</button></td>
             </tr>
           ))}
-          {!lista.length && <tr><td colSpan={6}><div className="vacio">No hay justificaciones para revisar.</div></td></tr>}
+          {!lista.length && <tr><td colSpan={7}><div className="vacio">No hay justificaciones para revisar.</div></td></tr>}
         </tbody>
       </table>
 
@@ -55,6 +74,7 @@ export default function Justificaciones() {
             <h2>Justificación · {detalle.nombres} {detalle.apellidos}</h2>
             <p style={{ color: "var(--tinta-suave)", fontSize: 13.5 }}>
               Clase del {new Date(detalle.fecha).toLocaleDateString("es-CO")} · Ficha {detalle.numero_ficha}
+              · {ETIQUETA_TIPO[detalle.tipo] || "Sin tipo"}
             </p>
             <label>Motivo descrito por el aprendiz</label>
             <div className="tarjeta" style={{ background: "var(--violeta-50)" }}>{detalle.descripcion || "Sin descripción"}</div>

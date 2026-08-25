@@ -91,10 +91,13 @@ router.get("/mi-historial", autorizar("aprendiz"), async (req, res) => {
   if (idFicha) {
     const r = await pool.query(
       `SELECT s.fecha, a.estado, TO_CHAR(a.hora_marca AT TIME ZONE 'America/Bogota','HH24:MI') AS hora,
-              a.metodo, a.observacion
+              a.metodo, a.observacion,
+              j.estado AS estado_soporte, j.token AS token_soporte, j.expira_en AS soporte_expira,
+              j.nombre_archivo AS soporte_archivo
        FROM asistencia a
        JOIN sesion_clase s ON s.id_sesion = a.id_sesion
        JOIN horario h ON h.id_horario = s.id_horario
+       LEFT JOIN justificacion j ON j.id_asistencia = a.id_asistencia
        WHERE a.id_aprendiz = $1 AND h.id_ficha = $2
        ORDER BY s.fecha DESC`,
       [req.usuario.id, idFicha]
