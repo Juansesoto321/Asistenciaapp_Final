@@ -10,6 +10,15 @@ const ETIQUETA_SOPORTE = {
   vencida: "Plazo vencido",
 };
 
+const ETIQUETA_TIPO = {
+  cita_medica: "Cita médica",
+  incapacidad_medica: "Incapacidad médica",
+  calamidad_domestica: "Calamidad doméstica",
+  diligencia_legal: "Diligencia legal / trámite obligatorio",
+  duelo: "Duelo (fallecimiento familiar)",
+  otro: "Otro",
+};
+
 function Anillo({ porcentaje, minimo }) {
   const critico = porcentaje < minimo;
   const color = critico ? "var(--rojo)" : "var(--verde)";
@@ -30,6 +39,7 @@ function Anillo({ porcentaje, minimo }) {
 export default function MiAsistencia() {
   const [datos, setDatos] = useState(null);
   const [mensaje, setMensaje] = useState(null);
+  const [detalleSoporte, setDetalleSoporte] = useState(null);
 
   const cargar = (idFicha) =>
     api(`/reportes/mi-historial${idFicha ? `?id_ficha=${idFicha}` : ""}`)
@@ -83,7 +93,9 @@ export default function MiAsistencia() {
                 {d.estado_soporte === "pendiente" ? (
                   <Link to={`/justificar/${d.token_soporte}`} className="boton mini">Cargar soporte →</Link>
                 ) : d.estado_soporte ? (
-                  <span className={`insignia ${d.estado_soporte}`}>{ETIQUETA_SOPORTE[d.estado_soporte] || d.estado_soporte}</span>
+                  <button className="boton mini suave" onClick={() => setDetalleSoporte(d)}>
+                    <span className={`insignia ${d.estado_soporte}`}>{ETIQUETA_SOPORTE[d.estado_soporte] || d.estado_soporte}</span>
+                  </button>
                 ) : "—"}
               </td>
             </tr>
@@ -91,6 +103,33 @@ export default function MiAsistencia() {
           {!datos.detalle.length && <tr><td colSpan={6}><div className="vacio">Aún no tienes registros de asistencia.</div></td></tr>}
         </tbody>
       </table>
+
+      {detalleSoporte && (
+        <div className="superposicion" onClick={() => setDetalleSoporte(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Mi justificación</h2>
+            <p style={{ color: "var(--tinta-suave)", fontSize: 13.5 }}>
+              Clase del {new Date(detalleSoporte.fecha).toLocaleDateString("es-CO")}
+              · {ETIQUETA_TIPO[detalleSoporte.soporte_tipo] || "Sin tipo"}
+            </p>
+            <label>Estado</label>
+            <span className={`insignia ${detalleSoporte.estado_soporte}`}>
+              {ETIQUETA_SOPORTE[detalleSoporte.estado_soporte] || detalleSoporte.estado_soporte}
+            </span>
+            <label style={{ marginTop: 14 }}>Lo que describiste</label>
+            <div className="tarjeta" style={{ background: "var(--violeta-50)" }}>{detalleSoporte.soporte_descripcion || "Sin descripción"}</div>
+            {detalleSoporte.soporte_observacion && (
+              <>
+                <label style={{ marginTop: 14 }}>Observación del instructor</label>
+                <div className="tarjeta" style={{ background: "var(--rojo-suave)" }}>{detalleSoporte.soporte_observacion}</div>
+              </>
+            )}
+            <div className="acciones-modal">
+              <button className="boton suave" onClick={() => setDetalleSoporte(null)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

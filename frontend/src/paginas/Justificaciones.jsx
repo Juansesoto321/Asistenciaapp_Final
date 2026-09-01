@@ -20,6 +20,8 @@ export default function Justificaciones() {
   const [detalle, setDetalle] = useState(null);
   const [mensaje, setMensaje] = useState(null);
   const [plazo, setPlazo] = useState(72);
+  const [rechazando, setRechazando] = useState(false);
+  const [observacion, setObservacion] = useState("");
 
   const cargar = () => api("/justificaciones").then(setLista).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
   useEffect(() => {
@@ -27,10 +29,12 @@ export default function Justificaciones() {
     api("/configuracion").then((c) => setPlazo(c.horas_justificacion));
   }, []);
 
-  async function validar(j, estado) {
+  function abrir(j) { setDetalle(j); setRechazando(false); setObservacion(""); }
+
+  async function validar(j, estado, obs) {
     try {
-      const r = await api(`/justificaciones/${j.id_justificacion}`, { method: "PATCH", body: { estado } });
-      setMensaje({ tipo: "exito", texto: r.mensaje }); setDetalle(null); cargar();
+      const r = await api(`/justificaciones/${j.id_justificacion}`, { method: "PATCH", body: { estado, observacion: obs } });
+      setMensaje({ tipo: "exito", texto: r.mensaje }); setDetalle(null); setRechazando(false); cargar();
     } catch (e) { setMensaje({ tipo: "error", texto: e.message }); }
   }
 
@@ -61,7 +65,7 @@ export default function Justificaciones() {
               <td>{ETIQUETA_TIPO[j.tipo] || "—"}</td>
               <td>{j.enviada_en ? new Date(j.enviada_en).toLocaleString("es-CO") : "—"}</td>
               <td><span className={`insignia ${j.estado}`}>{j.estado}</span></td>
-              <td><button className="boton mini suave" onClick={() => setDetalle(j)}>Revisar</button></td>
+              <td><button className="boton mini suave" onClick={() => abrir(j)}>Revisar</button></td>
             </tr>
           ))}
           {!lista.length && <tr><td colSpan={7}><div className="vacio">No hay justificaciones para revisar.</div></td></tr>}
@@ -83,12 +87,32 @@ export default function Justificaciones() {
                 📎 Adjunto: <a href="#" onClick={(e) => { e.preventDefault(); verArchivo(detalle); }}>{detalle.nombre_archivo}</a>
               </p>
             )}
-            {detalle.estado === "enviada" ? (
+
+            {detalle.observacion_validacion && (
+              <>
+                <label style={{ marginTop: 14 }}>Observación de {detalle.estado === "rechazada" ? "rechazo" : "aprobación"}</label>
+                <div className="tarjeta" style={{ background: "var(--rojo-suave)" }}>{detalle.observacion_validacion}</div>
+              </>
+            )}
+
+            {detalle.estado === "enviada" && !rechazando && (
               <div className="acciones-modal">
-                <button className="boton peligro" onClick={() => validar(detalle, "rechazada")}>Rechazar</button>
+                <button className="boton peligro" onClick={() => setRechazando(true)}>Rechazar</button>
                 <button className="boton exito" onClick={() => validar(detalle, "aprobada")}>Aprobar (queda justificada)</button>
               </div>
-            ) : (
+            )}
+
+            {detalle.estado === "enviada" && rechazando && (<>
+              <label style={{ marginTop: 14 }}>Explica por qué se rechaza (obligatorio, el aprendiz lo verá)</label>
+              <textarea rows={3} value={observacion} onChange={(e) => setObservacion(e.target.value)}
+                        placeholder="Ej.: la foto no corresponde a una constancia médica real." />
+              <div className="acciones-modal">
+                <button className="boton suave" onClick={() => setRechazando(false)}>Cancelar</button>
+                <button className="boton peligro" disabled={!observacion.trim()} onClick={() => validar(detalle, "rechazada", observacion)}>Confirmar rechazo</button>
+              </div>
+            </>)}
+
+            {detalle.estado !== "enviada" && (
               <div className="acciones-modal">
                 <span className={`insignia ${detalle.estado}`}>{detalle.estado}</span>
                 <button className="boton suave" onClick={() => setDetalle(null)}>Cerrar</button>

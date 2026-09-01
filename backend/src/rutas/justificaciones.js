@@ -5,6 +5,7 @@
 const express = require("express");
 const pool = require("../config/db");
 const { auditar } = require("../servicios/auditoria");
+const { enviarCorreo } = require("../servicios/correo");
 const { autenticar, autorizar } = require("../middleware/autenticar");
 
 const router = express.Router();
@@ -102,6 +103,7 @@ router.get("/", autorizar("instructor", "administrador"), async (req, res) => {
   const valores = req.usuario.rol === "instructor" ? [req.usuario.id] : [];
   const r = await pool.query(
     `SELECT j.id_justificacion, j.estado, j.tipo, j.descripcion, j.nombre_archivo, j.enviada_en, j.expira_en,
+            j.observacion_validacion,
             s.fecha, f.numero_ficha, u.nombres, u.apellidos, u.documento
      FROM justificacion j
      JOIN asistencia a ON a.id_asistencia = j.id_asistencia
@@ -131,25 +133,31 @@ router.patch("/:id", autorizar("instructor", "administrador"), async (req, res) 
     return res.status(403).json({ mensaje: "No tienes permisos para validar esta justificación" });
   const cliente = await pool.connect();
   try {
-    const { estado } = req.body; // aprobada | rechazada
+    const { estado, observacion } = req.body; // aprobada | rechazada
     if (!["aprobada", "rechazada"].includes(estado))
       return res.status(400).json({ mensaje: "Estado inválido" });
+    if (estado === "rechazada" && !observacion?.trim())
+      return res.status(400).json({ mensaje: "Explica por qué se rechaza la justificación" });
+
     await cliente.query("BEGIN");
     const r = await cliente.query(
-      `UPDATE justificacion SET estado = $1, validada_por = $2, validada_en = NOW()
-       WHERE id_justificacion = $3 AND estado = 'enviada'
+      `UPDATE justificacion SET estado = $1, validada_por = $2, validada_en = NOW(), observacion_validacion = $3
+       WHERE id_justificacion = $4 AND estado = 'enviada'
        RETURNING id_asistencia`,
-      [estado, req.usuario.id, req.params.id]
+      [estado, req.usuario.id, observacion?.trim() || null, req.params.id]
     );
     if (!r.rows[0]) {
       await cliente.query("ROLLBACK");
       return res.status(400).json({ mensaje: "La justificación no está pendiente de revisión" });
     }
+
+    let aprendiz;
     if (estado === "aprobada") {
       const asis = await cliente.query(
         "UPDATE asistencia SET estado = 'justificada' WHERE id_asistencia = $1 RETURNING id_aprendiz",
         [r.rows[0].id_asistencia]
       );
+      aprendiz = asis.rows[0].id_aprendiz;
       await cliente.query(
         `INSERT INTO cambio_asistencia (id_asistencia, estado_anterior, estado_nuevo, motivo, cambiado_por)
          VALUES ($1,'ausente','justificada','Justificación aprobada',$2)`,
@@ -158,18 +166,39 @@ router.patch("/:id", autorizar("instructor", "administrador"), async (req, res) 
       await cliente.query(
         `INSERT INTO notificacion (id_usuario, tipo, titulo, mensaje)
          VALUES ($1,'justificacion','Justificación aprobada','Tu inasistencia quedó marcada como justificada.')`,
-        [asis.rows[0].id_aprendiz]
+        [aprendiz]
       );
     } else {
       const asis = await cliente.query("SELECT id_aprendiz FROM asistencia WHERE id_asistencia = $1", [r.rows[0].id_asistencia]);
+      aprendiz = asis.rows[0].id_aprendiz;
       await cliente.query(
         `INSERT INTO notificacion (id_usuario, tipo, titulo, mensaje)
-         VALUES ($1,'justificacion','Justificación rechazada','Tu justificación fue rechazada. La inasistencia se mantiene.')`,
-        [asis.rows[0].id_aprendiz]
+         VALUES ($1,'justificacion','Justificación rechazada',$2)`,
+        [aprendiz, `Tu justificación fue rechazada. Motivo: ${observacion.trim()}`]
       );
     }
     await cliente.query("COMMIT");
     await auditar(req.usuario.id, `justificacion_${estado}`, "justificacion", Number(req.params.id));
+
+    // Correo con el resultado (y el motivo, si fue rechazada)
+    const u = await pool.query("SELECT nombres, correo FROM usuario WHERE id_usuario = $1", [aprendiz]);
+    if (estado === "aprobada") {
+      await enviarCorreo({
+        para: u.rows[0].correo,
+        asunto: "AsistenciaApp · Justificación aprobada",
+        html: `<p>Hola ${u.rows[0].nombres},</p><p>Tu justificación fue <b>aprobada</b>. La inasistencia quedó marcada como "justificada".</p>`,
+      });
+    } else {
+      await enviarCorreo({
+        para: u.rows[0].correo,
+        asunto: "AsistenciaApp · Justificación rechazada",
+        html: `<p>Hola ${u.rows[0].nombres},</p>
+               <p>Tu justificación fue <b>rechazada</b>.</p>
+               <p><b>Motivo:</b> ${observacion.trim()}</p>
+               <p>Puedes ver el detalle desde "Mi asistencia" en la plataforma.</p>`,
+      });
+    }
+
     res.json({ mensaje: `Justificación ${estado}` });
   } catch (e) {
     await cliente.query("ROLLBACK");

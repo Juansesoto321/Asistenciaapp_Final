@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS justificacion (
   enviada_en       TIMESTAMPTZ,
   validada_por     INTEGER REFERENCES usuario(id_usuario),
   validada_en      TIMESTAMPTZ,
+  observacion_validacion TEXT, -- motivo que da el instructor/admin, obligatorio al rechazar
   creado_en        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
