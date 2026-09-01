@@ -31,6 +31,18 @@ app.use("/api/reportes", require("./rutas/reportes"));
 app.use("/api", require("./rutas/academico"));
 app.use("/api", require("./rutas/varios"));
 
+// Protocolo real ZKTeco PUSH/ADMS (lectores fisicos como el SenseFace 2A).
+// Rutas fijas por el protocolo: no llevan prefijo /api.
+app.use("/iclock", require("./rutas/adms"));
+
+// ---- ESPIA TEMPORAL: registra cualquier otra peticion no reconocida ----
+app.all(/.*/, (req, res) => {
+  console.log("\n=== PETICION SIN RUTA REGISTRADA ===");
+  console.log("Metodo:", req.method, "| URL:", req.originalUrl);
+  console.log("=====================================\n");
+  res.status(200).send("OK");
+});
+
 // ---- Tareas programadas ----
 // 1. Vencer justificaciones fuera de la ventana de 72 horas
 // 2. Marcar lectores fuera de linea si no envian heartbeat en 3 minutos (CU-09)
