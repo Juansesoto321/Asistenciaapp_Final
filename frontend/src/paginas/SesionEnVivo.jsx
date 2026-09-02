@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import { api } from "../servicios/api";
+import IconoHuella from "../componentes/IconoHuella.jsx";
 
 export default function SesionEnVivo() {
   const { id } = useParams();
@@ -86,7 +87,7 @@ export default function SesionEnVivo() {
             <tr key={a.id_usuario}>
               <td>{a.nombres} {a.apellidos}</td>
               <td>{a.documento}</td>
-              <td>{a.tiene_huella ? "🫆" : <span title="Sin huella registrada: usar manual">✋</span>}</td>
+              <td>{a.tiene_huella ? <IconoHuella title="Huella registrada" /> : <span title="Sin huella registrada: usar manual">✋</span>}</td>
               <td>{a.estado ? <span className={`insignia ${a.estado}`}>{a.estado}</span> : <span style={{ color: "var(--tinta-suave)" }}>esperando…</span>}</td>
               <td>{a.hora_marca ? new Date(a.hora_marca).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
               <td>{a.metodo ? <span className={`insignia ${a.metodo}`}>{a.metodo}</span> : "—"}</td>
