@@ -61,9 +61,9 @@ console.log(`
   simular que pone su dedo en el lector.
 
   Documentos de demostración:
-    1027524931  Julieth Peña       1027524934  Santiago Bermudez
-    1027524932  Julian Becerra     1027524935  Yordan Mendez
-    1027524933  Juan Soto
+    1016716963  Julieth Peña       1019764503  Santiago Bermudez
+    1027524931  Julian Becerra     1021675228  Yordan Mendez
+    1192771015  Juan Soto
     9999999999  (huella NO registrada, prueba CU-16)
 
   Comandos: "salir" para terminar
