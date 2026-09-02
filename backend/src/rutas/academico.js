@@ -135,7 +135,7 @@ router.post("/ambientes/:id/dispositivo", autorizar("administrador"), async (req
     const r = await pool.query(
       `INSERT INTO dispositivo (serial, modelo, id_ambiente, clave_api, estado)
        VALUES ($1,$2,$3,$4,'no_verificado') RETURNING id_dispositivo, serial, modelo, estado`,
-      [serial, modelo || "ZKTeco K50 (simulado)", req.params.id, claveApi]
+      [serial, modelo || "ZKTeco SenseFace 2A (simulado)", req.params.id, claveApi]
     );
     await auditar(req.usuario.id, "registrar_dispositivo", "dispositivo", r.rows[0].id_dispositivo);
     // La clave se muestra UNA sola vez, para configurar el lector/simulador

@@ -46,7 +46,7 @@ http://localhost:8080
 |---|---|---|
 | Administrador | admin@sena.edu.co | Admin123* |
 | Instructor | cristian.buitrago@sena.edu.co | Instructor123* |
-| Aprendiz | julieth.pena@soy.sena.edu.co | Aprendiz123* |
+| Aprendiz | camilap.m1230@gmail.com | Aprendiz123* |
 
 ## 5. Para apagarlo (cuando termines de probar)
 

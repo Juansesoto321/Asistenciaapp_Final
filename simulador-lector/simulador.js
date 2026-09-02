@@ -1,14 +1,16 @@
 /**
  * ============================================================
- * SIMULADOR DEL LECTOR BIOMÉTRICO (ZKTeco K50)
+ * SIMULADOR DEL LECTOR BIOMÉTRICO (ZKTeco SenseFace 2A)
  * ============================================================
  * Emula el dispositivo físico instalado en la pared del ambiente:
  *  - Envía un "heartbeat" periódico al servidor (CU-09)
  *  - Permite "poner el dedo" escribiendo el documento del aprendiz,
  *    que hace las veces de la huella capturada (CU-13)
  *
- * Cuando llegue el hardware real, este módulo se reemplaza por la
- * integración con el protocolo PUSH/ADMS de ZKTeco: el backend NO cambia.
+ * El hardware real (ZKTeco SenseFace 2A) ya está integrado por separado
+ * mediante el protocolo PUSH/ADMS en backend/src/rutas/adms.js (rutas
+ * /iclock/*); este simulador sigue sirviendo para demostrar el sistema
+ * sin depender del equipo físico.
  *
  * Uso:  node simulador.js [url_backend]
  *       (por defecto http://localhost:4000)
@@ -44,7 +46,7 @@ async function marcar(lectura) {
     const datos = await r.json();
     const icono = { ok: "\u2705", duplicada: "\u26A0\uFE0F ", no_reconocida: "\u274C", sin_sesion: "\u23F8\uFE0F " }[datos.resultado] || "\u2139\uFE0F ";
     console.log(`${icono} ${datos.mensaje}`);
-    // El K50 real confirma con luz verde/roja y sonido: aqui lo simula el icono
+    // El lector real confirma con luz verde/roja y sonido: aqui lo simula el icono
   } catch (e) {
     console.log("Error de red:", e.message);
   }

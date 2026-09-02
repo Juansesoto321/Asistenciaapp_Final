@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS ambiente (
 CREATE TABLE IF NOT EXISTS dispositivo (
   id_dispositivo   SERIAL PRIMARY KEY,
   serial           VARCHAR(50) NOT NULL UNIQUE,
-  modelo           VARCHAR(80) NOT NULL DEFAULT 'ZKTeco K50 (simulado)',
+  modelo           VARCHAR(80) NOT NULL DEFAULT 'ZKTeco SenseFace 2A (simulado)',
   id_ambiente      INTEGER REFERENCES ambiente(id_ambiente),
   clave_api        VARCHAR(100) NOT NULL,   -- autentica al dispositivo ante el backend
   estado           VARCHAR(20) NOT NULL DEFAULT 'no_verificado'
