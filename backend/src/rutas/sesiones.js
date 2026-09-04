@@ -157,37 +157,29 @@ router.post("/:id/asistencia-manual", autorizar("instructor", "administrador"), 
     }
 
     await cliente.query("BEGIN");
-    const existente = await cliente.query(
-      "SELECT id_asistencia, estado FROM asistencia WHERE id_sesion = $1 AND id_aprendiz = $2",
-      [req.params.id, id_aprendiz]
+    // UPSERT atomico: evita la condicion de carrera de "SELECT si existe,
+    // luego INSERT o UPDATE" (dos peticiones casi simultaneas para el mismo
+    // aprendiz -ej. doble clic, o el lector marcando justo en ese momento-
+    // podian pasar ambas el SELECT antes de que cualquiera insertara,
+    // haciendo que la segunda chocara con la restriccion unica).
+    const upsert = await cliente.query(
+      `WITH anterior AS (
+         SELECT estado FROM asistencia WHERE id_sesion = $1 AND id_aprendiz = $2
+       )
+       INSERT INTO asistencia (id_sesion, id_aprendiz, estado, hora_marca, metodo, observacion, registrado_por)
+       VALUES ($1,$2,$3,NOW(),'manual',$4,$5)
+       ON CONFLICT (id_sesion, id_aprendiz) DO UPDATE
+         SET estado = EXCLUDED.estado, metodo = 'manual', observacion = EXCLUDED.observacion,
+             registrado_por = EXCLUDED.registrado_por, hora_marca = COALESCE(asistencia.hora_marca, NOW())
+       RETURNING id_asistencia, (SELECT estado FROM anterior) AS estado_anterior`,
+      [req.params.id, id_aprendiz, estado, motivo, req.usuario.id]
     );
-    let idAsistencia;
-    if (existente.rows[0]) {
-      idAsistencia = existente.rows[0].id_asistencia;
-      await cliente.query(
-        `UPDATE asistencia SET estado = $1, metodo = 'manual', observacion = $2,
-          registrado_por = $3, hora_marca = COALESCE(hora_marca, NOW())
-         WHERE id_asistencia = $4`,
-        [estado, motivo, req.usuario.id, idAsistencia]
-      );
-      await cliente.query(
-        `INSERT INTO cambio_asistencia (id_asistencia, estado_anterior, estado_nuevo, motivo, cambiado_por)
-         VALUES ($1,$2,$3,$4,$5)`,
-        [idAsistencia, existente.rows[0].estado, estado, motivo, req.usuario.id]
-      );
-    } else {
-      const ins = await cliente.query(
-        `INSERT INTO asistencia (id_sesion, id_aprendiz, estado, hora_marca, metodo, observacion, registrado_por)
-         VALUES ($1,$2,$3,NOW(),'manual',$4,$5) RETURNING id_asistencia`,
-        [req.params.id, id_aprendiz, estado, motivo, req.usuario.id]
-      );
-      idAsistencia = ins.rows[0].id_asistencia;
-      await cliente.query(
-        `INSERT INTO cambio_asistencia (id_asistencia, estado_anterior, estado_nuevo, motivo, cambiado_por)
-         VALUES ($1,NULL,$2,$3,$4)`,
-        [idAsistencia, estado, motivo, req.usuario.id]
-      );
-    }
+    const idAsistencia = upsert.rows[0].id_asistencia;
+    await cliente.query(
+      `INSERT INTO cambio_asistencia (id_asistencia, estado_anterior, estado_nuevo, motivo, cambiado_por)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [idAsistencia, upsert.rows[0].estado_anterior, estado, motivo, req.usuario.id]
+    );
     // Si quedo "ausente", dispara el mismo enlace de justificacion + correo que al cerrar sesion
     if (estado === "ausente") {
       const f = await cliente.query(
