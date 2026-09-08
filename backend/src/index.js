@@ -9,6 +9,12 @@ const http = require("http");
 const pool = require("./config/db");
 const tiempoReal = require("./servicios/tiempoReal");
 
+// Red de seguridad: un error sin capturar en cualquier ruta no debe tumbar
+// todo el servidor (le paso a varias rutas ya endurecidas, pero esto cubre
+// cualquier otra que se nos escape).
+process.on("unhandledRejection", (err) => console.error("Rechazo no manejado:", err));
+process.on("uncaughtException", (err) => console.error("Excepción no capturada:", err));
+
 const app = express();
 const servidor = http.createServer(app);
 tiempoReal.inicializar(servidor);

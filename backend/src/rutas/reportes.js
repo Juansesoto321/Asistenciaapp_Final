@@ -70,12 +70,18 @@ router.get("/busquedas-guardadas", async (req, res) => {
   res.json(r.rows);
 });
 router.post("/busquedas-guardadas", async (req, res) => {
-  const { nombre, filtros } = req.body;
-  const r = await pool.query(
-    "INSERT INTO busqueda_guardada (id_usuario, nombre, filtros) VALUES ($1,$2,$3) RETURNING *",
-    [req.usuario.id, nombre, JSON.stringify(filtros)]
-  );
-  res.status(201).json(r.rows[0]);
+  try {
+    const { nombre, filtros } = req.body;
+    if (!nombre?.trim()) return res.status(400).json({ mensaje: "Ponle un nombre a la búsqueda" });
+    const r = await pool.query(
+      "INSERT INTO busqueda_guardada (id_usuario, nombre, filtros) VALUES ($1,$2,$3) RETURNING *",
+      [req.usuario.id, nombre, JSON.stringify(filtros)]
+    );
+    res.status(201).json(r.rows[0]);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ mensaje: "Error al guardar la búsqueda" });
+  }
 });
 
 // CU-19: historial del aprendiz (solo sus datos)

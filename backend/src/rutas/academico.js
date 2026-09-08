@@ -17,12 +17,18 @@ router.get("/periodos", async (_req, res) => {
   res.json(r.rows);
 });
 router.post("/periodos", autorizar("administrador"), async (req, res) => {
-  const { nombre, fecha_inicio, fecha_fin } = req.body;
-  const r = await pool.query(
-    "INSERT INTO periodo (nombre, fecha_inicio, fecha_fin) VALUES ($1,$2,$3) RETURNING *",
-    [nombre, fecha_inicio, fecha_fin]
-  );
-  res.status(201).json(r.rows[0]);
+  try {
+    const { nombre, fecha_inicio, fecha_fin } = req.body;
+    const r = await pool.query(
+      "INSERT INTO periodo (nombre, fecha_inicio, fecha_fin) VALUES ($1,$2,$3) RETURNING *",
+      [nombre, fecha_inicio, fecha_fin]
+    );
+    res.status(201).json(r.rows[0]);
+  } catch (e) {
+    if (e.code === "23514") return res.status(400).json({ mensaje: "La fecha fin debe ser posterior a la fecha inicio" });
+    console.error(e);
+    res.status(500).json({ mensaje: "Error al crear el periodo" });
+  }
 });
 
 // ---------- FICHAS (CU-05) ----------
@@ -101,10 +107,17 @@ router.post("/fichas/:id/matriculas", autorizar("administrador"), async (req, re
 });
 
 router.patch("/matriculas/:id", autorizar("administrador"), async (req, res) => {
-  const { estado } = req.body; // retirada | finalizada
-  await pool.query("UPDATE matricula SET estado = $1 WHERE id_matricula = $2", [estado, req.params.id]);
-  await auditar(req.usuario.id, "cambiar_matricula", "matricula", Number(req.params.id), { estado });
-  res.json({ mensaje: "Matrícula actualizada" });
+  try {
+    const { estado } = req.body; // retirada | finalizada
+    if (!["activa", "retirada", "finalizada"].includes(estado))
+      return res.status(400).json({ mensaje: "Estado inválido" });
+    await pool.query("UPDATE matricula SET estado = $1 WHERE id_matricula = $2", [estado, req.params.id]);
+    await auditar(req.usuario.id, "cambiar_matricula", "matricula", Number(req.params.id), { estado });
+    res.json({ mensaje: "Matrícula actualizada" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ mensaje: "Error al actualizar la matrícula" });
+  }
 });
 
 // ---------- AMBIENTES Y DISPOSITIVOS (CU-07) ----------
@@ -118,13 +131,19 @@ router.get("/ambientes", async (_req, res) => {
 });
 
 router.post("/ambientes", autorizar("administrador"), async (req, res) => {
-  const { numero_ambiente, sede_centro, id_periodo } = req.body;
-  const r = await pool.query(
-    "INSERT INTO ambiente (numero_ambiente, sede_centro, id_periodo) VALUES ($1,$2,$3) RETURNING *",
-    [numero_ambiente, sede_centro, id_periodo || null]
-  );
-  await auditar(req.usuario.id, "crear_ambiente", "ambiente", r.rows[0].id_ambiente);
-  res.status(201).json(r.rows[0]);
+  try {
+    const { numero_ambiente, sede_centro, id_periodo } = req.body;
+    const r = await pool.query(
+      "INSERT INTO ambiente (numero_ambiente, sede_centro, id_periodo) VALUES ($1,$2,$3) RETURNING *",
+      [numero_ambiente, sede_centro, id_periodo || null]
+    );
+    await auditar(req.usuario.id, "crear_ambiente", "ambiente", r.rows[0].id_ambiente);
+    res.status(201).json(r.rows[0]);
+  } catch (e) {
+    if (e.code === "23503") return res.status(400).json({ mensaje: "El periodo indicado no existe" });
+    console.error(e);
+    res.status(500).json({ mensaje: "Error al crear el ambiente" });
+  }
 });
 
 // Asociar lector al ambiente: genera la clave API que usara el dispositivo
@@ -210,9 +229,16 @@ router.post("/horarios", autorizar("administrador"), async (req, res) => {
 });
 
 router.delete("/horarios/:id", autorizar("administrador"), async (req, res) => {
-  await pool.query("DELETE FROM horario WHERE id_horario = $1", [req.params.id]);
-  await auditar(req.usuario.id, "eliminar_horario", "horario", Number(req.params.id));
-  res.json({ mensaje: "Horario eliminado" });
+  try {
+    await pool.query("DELETE FROM horario WHERE id_horario = $1", [req.params.id]);
+    await auditar(req.usuario.id, "eliminar_horario", "horario", Number(req.params.id));
+    res.json({ mensaje: "Horario eliminado" });
+  } catch (e) {
+    if (e.code === "23503")
+      return res.status(400).json({ mensaje: "No se puede eliminar: ya existen sesiones de clase registradas para este horario" });
+    console.error(e);
+    res.status(500).json({ mensaje: "Error al eliminar el horario" });
+  }
 });
 
 module.exports = router;

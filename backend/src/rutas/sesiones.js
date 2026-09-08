@@ -2,6 +2,7 @@
  * CU-12 Iniciar sesion de clase · CU-14 Supervisar en tiempo real
  * CU-15 Asistencia manual/override · cierre con generacion de justificaciones (72h)
  */
+
 const express = require("express");
 const crypto = require("crypto");
 const pool = require("../config/db");
@@ -11,6 +12,7 @@ const { emitirASesion } = require("../servicios/tiempoReal");
 const { autenticar, autorizar } = require("../middleware/autenticar");
 
 const router = express.Router();
+
 router.use(autenticar);
 
 // Genera el enlace de justificacion (si no existe ya) + correo + notificacion.
@@ -28,7 +30,7 @@ async function generarJustificacionYNotificar(
 
   const ins = await cliente.query(
     `INSERT INTO justificacion (id_asistencia, token, expira_en)
-     VALUES ($1,$2, NOW() + ($3 || ' hours')::interval)
+     VALUES ($1, $2, NOW() + ($3 || ' hours')::interval)
      ON CONFLICT (id_asistencia) DO NOTHING
      RETURNING id_justificacion`,
     [idAsistencia, token, horas]
@@ -276,79 +278,55 @@ router.post(
 
       await cliente.query("BEGIN");
 
-      const existente = await cliente.query(
-        `SELECT id_asistencia, estado
-         FROM asistencia
-         WHERE id_sesion = $1
-           AND id_aprendiz = $2`,
-        [req.params.id, id_aprendiz]
+      // UPSERT atómico: evita condiciones de carrera cuando dos peticiones
+      // intentan registrar/modificar la asistencia al mismo tiempo.
+      const upsert = await cliente.query(
+        `WITH anterior AS (
+           SELECT estado
+           FROM asistencia
+           WHERE id_sesion = $1
+             AND id_aprendiz = $2
+         )
+         INSERT INTO asistencia
+           (id_sesion, id_aprendiz, estado, hora_marca, metodo, observacion, registrado_por)
+         VALUES
+           ($1, $2, $3, NOW(), 'manual', $4, $5)
+         ON CONFLICT (id_sesion, id_aprendiz)
+         DO UPDATE SET
+           estado = EXCLUDED.estado,
+           metodo = 'manual',
+           observacion = EXCLUDED.observacion,
+           registrado_por = EXCLUDED.registrado_por,
+           hora_marca = COALESCE(asistencia.hora_marca, NOW())
+         RETURNING
+           id_asistencia,
+           (SELECT estado FROM anterior) AS estado_anterior`,
+        [
+          req.params.id,
+          id_aprendiz,
+          estado,
+          motivo,
+          req.usuario.id,
+        ]
       );
 
-      let idAsistencia;
+      const idAsistencia = upsert.rows[0].id_asistencia;
 
-      if (existente.rows[0]) {
-        idAsistencia = existente.rows[0].id_asistencia;
+      await cliente.query(
+        `INSERT INTO cambio_asistencia
+           (id_asistencia, estado_anterior, estado_nuevo, motivo, cambiado_por)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          idAsistencia,
+          upsert.rows[0].estado_anterior,
+          estado,
+          motivo,
+          req.usuario.id,
+        ]
+      );
 
-        await cliente.query(
-          `UPDATE asistencia
-           SET estado = $1,
-               metodo = 'manual',
-               observacion = $2,
-               registrado_por = $3,
-               hora_marca = COALESCE(hora_marca, NOW())
-           WHERE id_asistencia = $4`,
-          [
-            estado,
-            motivo,
-            req.usuario.id,
-            idAsistencia,
-          ]
-        );
-
-        await cliente.query(
-          `INSERT INTO cambio_asistencia
-             (id_asistencia, estado_anterior, estado_nuevo, motivo, cambiado_por)
-           VALUES ($1,$2,$3,$4,$5)`,
-          [
-            idAsistencia,
-            existente.rows[0].estado,
-            estado,
-            motivo,
-            req.usuario.id,
-          ]
-        );
-      } else {
-        const ins = await cliente.query(
-          `INSERT INTO asistencia
-             (id_sesion, id_aprendiz, estado, hora_marca, metodo, observacion, registrado_por)
-           VALUES ($1,$2,$3,NOW(),'manual',$4,$5)
-           RETURNING id_asistencia`,
-          [
-            req.params.id,
-            id_aprendiz,
-            estado,
-            motivo,
-            req.usuario.id,
-          ]
-        );
-
-        idAsistencia = ins.rows[0].id_asistencia;
-
-        await cliente.query(
-          `INSERT INTO cambio_asistencia
-             (id_asistencia, estado_anterior, estado_nuevo, motivo, cambiado_por)
-           VALUES ($1,NULL,$2,$3,$4)`,
-          [
-            idAsistencia,
-            estado,
-            motivo,
-            req.usuario.id,
-          ]
-        );
-      }
-
-      // Si quedo "ausente", dispara el mismo enlace de justificacion
-      // + correo que al cerrar sesion.
+      // Si queda "ausente", genera el enlace de justificación,
+      // correo y notificación, igual que al cerrar la sesión.
       if (estado === "ausente") {
         const f = await cliente.query(
           `SELECT f.numero_ficha
@@ -359,11 +337,13 @@ router.post(
           [req.params.id]
         );
 
-        await generarJustificacionYNotificar(cliente, {
-          idAsistencia,
-          idAprendiz: id_aprendiz,
-          numeroFicha: f.rows[0].numero_ficha,
-        });
+        if (f.rows[0]) {
+          await generarJustificacionYNotificar(cliente, {
+            idAsistencia,
+            idAprendiz: id_aprendiz,
+            numeroFicha: f.rows[0].numero_ficha,
+          });
+        }
       }
 
       await cliente.query("COMMIT");
@@ -373,14 +353,16 @@ router.post(
         [id_aprendiz]
       );
 
-      emitirASesion(req.params.id, "marcacion", {
-        id_aprendiz,
-        nombres: u.rows[0].nombres,
-        apellidos: u.rows[0].apellidos,
-        estado,
-        hora_marca: new Date(),
-        metodo: "manual",
-      });
+      if (u.rows[0]) {
+        emitirASesion(req.params.id, "marcacion", {
+          id_aprendiz,
+          nombres: u.rows[0].nombres,
+          apellidos: u.rows[0].apellidos,
+          estado,
+          hora_marca: new Date(),
+          metodo: "manual",
+        });
+      }
 
       await auditar(
         req.usuario.id,
