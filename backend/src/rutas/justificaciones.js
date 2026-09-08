@@ -6,6 +6,7 @@ const express = require("express");
 const pool = require("../config/db");
 const { auditar } = require("../servicios/auditoria");
 const { enviarCorreo } = require("../servicios/correo");
+const { emitirJustificacionesActualizadas } = require("../servicios/tiempoReal");
 const { autenticar, autorizar } = require("../middleware/autenticar");
 
 const router = express.Router();
@@ -62,10 +63,8 @@ router.post("/token/:token", async (req, res) => {
       return res.status(410).json({ mensaje: `El enlace ya fue usado o el plazo de ${await textoPlazo()} venció` });
 
     // Notificar al instructor titular
-    await pool.query(
-      `INSERT INTO notificacion (id_usuario, tipo, titulo, mensaje)
-       SELECT h.id_instructor, 'justificacion', 'Nueva justificación por revisar',
-              u.nombres || ' ' || u.apellidos || ' cargó una justificación de inasistencia.'
+    const instr = await pool.query(
+      `SELECT h.id_instructor, u.nombres, u.apellidos
        FROM asistencia a
        JOIN sesion_clase s ON s.id_sesion = a.id_sesion
        JOIN horario h ON h.id_horario = s.id_horario
@@ -73,6 +72,15 @@ router.post("/token/:token", async (req, res) => {
        WHERE a.id_asistencia = $1`,
       [r.rows[0].id_asistencia]
     );
+    if (instr.rows[0]) {
+      await pool.query(
+        `INSERT INTO notificacion (id_usuario, tipo, titulo, mensaje)
+         VALUES ($1,'justificacion','Nueva justificación por revisar',$2)`,
+        [instr.rows[0].id_instructor, `${instr.rows[0].nombres} ${instr.rows[0].apellidos} cargó una justificación de inasistencia.`]
+      );
+      // CU-24: refleja al instante el nuevo pendiente en el contador del panel del instructor (y del admin)
+      emitirJustificacionesActualizadas(instr.rows[0].id_instructor);
+    }
     res.json({ mensaje: "Justificación enviada. El instructor la revisará" });
   } catch (e) {
     console.error(e);
@@ -116,6 +124,22 @@ router.get("/", autorizar("instructor", "administrador"), async (req, res) => {
     valores
   );
   res.json(r.rows);
+});
+
+// Contador de pendientes por revisar, para el panel del instructor/administrador
+router.get("/pendientes/contador", autorizar("instructor", "administrador"), async (req, res) => {
+  const filtro = req.usuario.rol === "instructor" ? "AND h.id_instructor = $1" : "";
+  const valores = req.usuario.rol === "instructor" ? [req.usuario.id] : [];
+  const r = await pool.query(
+    `SELECT COUNT(*) AS pendientes
+     FROM justificacion j
+     JOIN asistencia a ON a.id_asistencia = j.id_asistencia
+     JOIN sesion_clase s ON s.id_sesion = a.id_sesion
+     JOIN horario h ON h.id_horario = s.id_horario
+     WHERE j.estado = 'enviada' ${filtro}`,
+    valores
+  );
+  res.json({ pendientes: Number(r.rows[0].pendientes) });
 });
 
 // Descargar/ver adjunto
@@ -179,6 +203,16 @@ router.patch("/:id", autorizar("instructor", "administrador"), async (req, res) 
     }
     await cliente.query("COMMIT");
     await auditar(req.usuario.id, `justificacion_${estado}`, "justificacion", Number(req.params.id));
+
+    // Ya se resolvió: baja el contador de pendientes en el panel del instructor (y del admin)
+    const h = await pool.query(
+      `SELECT h.id_instructor FROM asistencia a
+       JOIN sesion_clase s ON s.id_sesion = a.id_sesion
+       JOIN horario h ON h.id_horario = s.id_horario
+       WHERE a.id_asistencia = $1`,
+      [r.rows[0].id_asistencia]
+    );
+    emitirJustificacionesActualizadas(h.rows[0]?.id_instructor);
 
     // Correo con el resultado (y el motivo, si fue rechazada)
     const u = await pool.query("SELECT nombres, correo FROM usuario WHERE id_usuario = $1", [aprendiz]);
