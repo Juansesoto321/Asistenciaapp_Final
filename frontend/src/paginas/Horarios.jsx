@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../servicios/api";
 import { useAuth } from "../contexto/AuthContext.jsx";
+import CalendarioPanel, { claveFecha } from "../componentes/CalendarioPanel";
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 // Orden de semana laboral (lunes a domingo) para las pestañas, aunque dia_semana en BD sea 0=domingo
@@ -19,6 +20,7 @@ export default function Horarios() {
   const [f, setF] = useState(VACIO);
   const [mensaje, setMensaje] = useState(null);
   const [diaActivo, setDiaActivo] = useState(new Date().getDay());
+  const [mes, setMes] = useState(() => new Date());
 
   const cargar = () => api("/horarios").then(setHorarios).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
   useEffect(() => {
@@ -34,6 +36,29 @@ export default function Horarios() {
   const delDia = horarios
     .filter((h) => h.dia_semana === diaActivo)
     .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+  // Calendario del mes visible: cada fecha "hereda" los horarios de su dia de la
+  // semana (dia_semana se repite todas las semanas mientras dure el periodo).
+  const datosPorDia = useMemo(() => {
+    const diasEnMes = new Date(mes.getFullYear(), mes.getMonth() + 1, 0).getDate();
+    const mapa = {};
+    for (let d = 1; d <= diasEnMes; d++) {
+      const fecha = new Date(mes.getFullYear(), mes.getMonth(), d);
+      const delDiaSemana = horarios.filter((h) => h.dia_semana === fecha.getDay());
+      if (!delDiaSemana.length) continue;
+      mapa[claveFecha(fecha)] = {
+        estado: "verde",
+        etiqueta: String(delDiaSemana.length),
+        horarios: delDiaSemana,
+        diaSemana: fecha.getDay(),
+      };
+    }
+    return mapa;
+  }, [horarios, mes]);
+
+  function cambiarMes(delta) {
+    setMes((m) => new Date(m.getFullYear(), m.getMonth() + delta, 1));
+  }
 
   async function crear() {
     if (!f.id_ficha || !f.id_ambiente || !f.id_instructor || !f.id_periodo || !f.hora_inicio || !f.hora_fin)
@@ -60,7 +85,15 @@ export default function Horarios() {
       </div>
       {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+      <CalendarioPanel
+        mes={mes}
+        onCambiarMes={cambiarMes}
+        datosPorDia={datosPorDia}
+        onDiaClick={(_clave, info) => setDiaActivo(info.diaSemana)}
+        leyenda={<span><i style={{ background: "var(--verde)" }} /> Día con clase programada (el número es cuántos horarios)</span>}
+      />
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "18px 0" }}>
         {ORDEN_SEMANA.map((dia) => {
           const cantidad = horarios.filter((h) => h.dia_semana === dia).length;
           return (
