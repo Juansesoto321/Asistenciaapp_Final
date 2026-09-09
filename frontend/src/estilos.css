@@ -189,3 +189,29 @@ table.tabla { width: 100%; border-collapse: collapse; background: var(--blanco);
 .calendario-celda.estado-rojo .numero-dia, .calendario-celda.estado-rojo .etiqueta-celda { color: var(--rojo); }
 .calendario-celda.estado-neutro { background: var(--violeta-50); }
 .calendario-celda.estado-neutro .numero-dia, .calendario-celda.estado-neutro .etiqueta-celda { color: var(--violeta-700); }
+/* ---------- Calendario de horarios ---------- */
+.bloque-clase {
+  position: absolute;
+  /* El <button> centra su contenido verticalmente por defecto; con flex en
+     columna el texto queda pegado arriba, como en un calendario real. */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 7px;
+  padding: 4px 7px;
+  text-align: left;
+  overflow: hidden;
+  cursor: pointer;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--tinta);
+  transition: filter .15s, box-shadow .15s;
+}
+.bloque-clase:hover { filter: brightness(0.96); box-shadow: var(--sombra); }
+.bloque-clase .hora { font-weight: 700; }
+.bloque-clase .sec  { color: var(--tinta-suave); }
+.bloque-clase .sin-asignar { color: var(--tinta-suave); font-style: italic; }
+
+.dia-hoy { background: var(--azul-suave); }

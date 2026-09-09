@@ -14,7 +14,7 @@ const VACIO = {
 const COLORES = ["#6d4aff", "#0e9f6e", "#d97706", "#dc2626", "#0284c7", "#7c3aed", "#be185d"];
 const colorDe = (idFicha) => COLORES[Number(idFicha) % COLORES.length];
 
-const ALTO_HORA = 56; // px por hora en la grilla
+const ALTO_HORA = 44; // px por hora en la grilla
 const aMinutos = (hora) => {
   const [h, m] = String(hora).split(":");
   return Number(h) * 60 + Number(m);
@@ -252,22 +252,25 @@ export default function Horarios() {
             </div>
           </div>
 
+          {/* Encabezado de días fijo y cuerpo de horas con scroll propio, para
+              que el calendario no empuje toda la página hacia abajo. */}
           {vista === "semana" && (
-            <div style={{ overflowX: "auto" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "60px repeat(7, minmax(150px, 1fr))", minWidth: 900 }}>
-                <div />
+            <div style={{ overflow: "auto", maxHeight: "62vh" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "52px repeat(7, minmax(104px, 1fr))", minWidth: 780 }}>
+                <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--blanco)" }} />
                 {diasSemana.map((fecha) => {
                   const esHoy = mismoDia(fecha, hoy);
                   return (
                     <div key={fecha.toISOString()} style={{
                       textAlign: "center", padding: "6px 0", borderBottom: "1px solid var(--borde)",
-                      background: esHoy ? "var(--azul-suave)" : "transparent", borderRadius: "8px 8px 0 0",
+                      background: esHoy ? "var(--azul-suave)" : "var(--blanco)",
+                      position: "sticky", top: 0, zIndex: 2,
                     }}>
-                      <div style={{ fontWeight: 700 }}>{DIAS[fecha.getDay()]}</div>
-                      <div style={{ fontSize: 18, fontWeight: esHoy ? 800 : 500, color: esHoy ? "var(--azul)" : "var(--tinta)" }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{DIAS[fecha.getDay()]}</div>
+                      <div style={{ fontSize: 17, fontWeight: esHoy ? 800 : 500, color: esHoy ? "var(--azul)" : "var(--tinta)", lineHeight: 1.1 }}>
                         {fecha.getDate()}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--tinta-suave)" }}>
+                      <div style={{ fontSize: 10.5, color: "var(--tinta-suave)" }}>
                         {fecha.toLocaleDateString("es-CO", { month: "short" })}
                       </div>
                     </div>
@@ -299,26 +302,27 @@ export default function Horarios() {
                         const inicio = aMinutos(h.hora_inicio);
                         const fin = aMinutos(h.hora_fin);
                         const top = ((inicio - rango.desde) / 60) * ALTO_HORA;
-                        const alto = Math.max(((fin - inicio) / 60) * ALTO_HORA, 34);
+                        const alto = Math.max(((fin - inicio) / 60) * ALTO_HORA, 30);
+                        const color = colorDe(h.id_ficha);
+                        const cabe = (lineas) => alto >= 16 * lineas + 10; // cuántas líneas entran
                         return (
                           <button
                             key={h.id_horario}
+                            className="bloque-clase"
                             onClick={() => setDetalle({ ...h, fecha })}
-                            title="Ver detalle"
+                            title={`${h.hora_inicio.slice(0, 5)}–${h.hora_fin.slice(0, 5)} · Ficha ${h.numero_ficha} · ${h.tematica || h.competencia || "sin competencia"}`}
                             style={{
-                              position: "absolute", top, left: 4, right: 4, height: alto - 3,
-                              background: colorDe(h.id_ficha), color: "#fff", border: 0,
-                              borderRadius: 8, padding: "5px 7px", textAlign: "left",
-                              cursor: "pointer", overflow: "hidden", fontSize: 11.5, lineHeight: 1.25,
+                              top, left: 3, right: 3, height: alto - 3,
+                              background: `${color}1f`, borderLeft: `3px solid ${color}`,
                             }}
                           >
-                            <div style={{ fontWeight: 700 }}>
+                            <div className="hora" style={{ color }}>
                               {h.hora_inicio.slice(0, 5)}–{h.hora_fin.slice(0, 5)}
                             </div>
-                            <div>Ficha {h.numero_ficha} · Amb. {h.numero_ambiente}</div>
-                            {h.tematica && <div style={{ opacity: 0.95 }}>{h.tematica}</div>}
-                            {!h.tematica && h.competencia && <div style={{ opacity: 0.95 }}>{h.competencia}</div>}
-                            {!h.competencia && <div style={{ opacity: 0.8, fontStyle: "italic" }}>Sin competencia asignada</div>}
+                            {cabe(2) && <div>Ficha {h.numero_ficha} · Amb. {h.numero_ambiente}</div>}
+                            {cabe(3) && (h.tematica || h.competencia
+                              ? <div className="sec">{h.tematica || h.competencia}</div>
+                              : <div className="sin-asignar">Sin competencia asignada</div>)}
                           </button>
                         );
                       })}
@@ -331,7 +335,7 @@ export default function Horarios() {
 
           {vista === "mes" && (
             <div style={{ overflowX: "auto" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(120px, 1fr))", minWidth: 840 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(104px, 1fr))", minWidth: 760 }}>
                 {ORDEN_SEMANA.map((d) => (
                   <div key={d} style={{ textAlign: "center", fontWeight: 700, padding: "6px 0", borderBottom: "1px solid var(--borde)" }}>
                     {DIAS[d]}
@@ -350,19 +354,25 @@ export default function Horarios() {
                       <div style={{ fontSize: 12, fontWeight: esHoy ? 800 : 600, color: esHoy ? "var(--azul)" : "var(--tinta-suave)", marginBottom: 3 }}>
                         {fecha.getDate()}
                       </div>
-                      {delDia.slice(0, 3).map((h) => (
-                        <button
-                          key={h.id_horario}
-                          onClick={() => setDetalle({ ...h, fecha })}
-                          style={{
-                            display: "block", width: "100%", marginBottom: 3, border: 0, borderRadius: 6,
-                            background: colorDe(h.id_ficha), color: "#fff", padding: "3px 5px",
-                            textAlign: "left", cursor: "pointer", fontSize: 10.5, lineHeight: 1.2,
-                          }}
-                        >
-                          <b>{h.hora_inicio.slice(0, 5)}</b> {h.tematica || h.competencia || `Ficha ${h.numero_ficha}`}
-                        </button>
-                      ))}
+                      {delDia.slice(0, 3).map((h) => {
+                        const color = colorDe(h.id_ficha);
+                        return (
+                          <button
+                            key={h.id_horario}
+                            className="bloque-clase"
+                            onClick={() => setDetalle({ ...h, fecha })}
+                            title={`${h.hora_inicio.slice(0, 5)} · Ficha ${h.numero_ficha}`}
+                            style={{
+                              position: "static", width: "100%", marginBottom: 3, fontSize: 10.5,
+                              whiteSpace: "nowrap", textOverflow: "ellipsis",
+                              background: `${color}1f`, borderLeft: `3px solid ${color}`,
+                            }}
+                          >
+                            <span className="hora" style={{ color }}>{h.hora_inicio.slice(0, 5)}</span>{" "}
+                            {h.tematica || h.competencia || `Ficha ${h.numero_ficha}`}
+                          </button>
+                        );
+                      })}
                       {delDia.length > 3 && (
                         <div style={{ fontSize: 10.5, color: "var(--tinta-suave)" }}>+{delDia.length - 3} más</div>
                       )}
