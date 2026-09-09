@@ -95,6 +95,32 @@ CREATE TABLE IF NOT EXISTS dispositivo (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_dispositivo_ambiente_unico
   ON dispositivo (id_ambiente) WHERE id_ambiente IS NOT NULL;
 
+-- ---------- ESTRUCTURA CURRICULAR ----------
+-- Competencia -> Resultados de Aprendizaje (RAP) -> Temáticas.
+-- Un mismo RAP se dicta en varios trimestres con temáticas distintas.
+
+CREATE TABLE IF NOT EXISTS competencia (
+  id_competencia SERIAL PRIMARY KEY,
+  codigo         VARCHAR(30),
+  nombre         VARCHAR(300) NOT NULL UNIQUE,
+  creado_en      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS resultado_aprendizaje (
+  id_rap         SERIAL PRIMARY KEY,
+  id_competencia INTEGER NOT NULL REFERENCES competencia(id_competencia) ON DELETE CASCADE,
+  codigo         VARCHAR(30) NOT NULL UNIQUE,
+  nombre         TEXT NOT NULL,
+  creado_en      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tematica (
+  id_tematica SERIAL PRIMARY KEY,
+  id_rap      INTEGER NOT NULL REFERENCES resultado_aprendizaje(id_rap) ON DELETE CASCADE,
+  nombre      VARCHAR(200) NOT NULL,
+  UNIQUE (id_rap, nombre)
+);
+
 -- ---------- HORARIOS Y SESIONES (CU-08, CU-12) ----------
 
 CREATE TABLE IF NOT EXISTS horario (
@@ -106,6 +132,8 @@ CREATE TABLE IF NOT EXISTS horario (
   dia_semana    INTEGER NOT NULL CHECK (dia_semana BETWEEN 0 AND 6), -- 0=domingo
   hora_inicio   TIME NOT NULL,
   hora_fin      TIME NOT NULL,
+  id_rap        INTEGER REFERENCES resultado_aprendizaje(id_rap),   -- qué se dicta en este bloque
+  id_tematica   INTEGER REFERENCES tematica(id_tematica),
   CHECK (hora_fin > hora_inicio)
 );
 

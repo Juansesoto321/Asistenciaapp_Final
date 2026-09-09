@@ -30,8 +30,8 @@ async function crearFicha(datos, usuario) {
   return ficha;
 }
 
-async function obtenerHorarios(usuario) {
-  return repositorio.listarHorarios(usuario);
+async function obtenerHorarios(usuario, filtros) {
+  return repositorio.listarHorarios(usuario, filtros);
 }
 
 async function crearHorario(datos, usuario) {
@@ -60,6 +60,8 @@ async function editarHorario(id, datos, usuario) {
     dia_semana: datos.dia_semana ?? actual.dia_semana,
     hora_inicio: datos.hora_inicio ?? actual.hora_inicio,
     hora_fin: datos.hora_fin ?? actual.hora_fin,
+    id_rap: datos.id_rap !== undefined ? datos.id_rap : actual.id_rap,
+    id_tematica: datos.id_tematica !== undefined ? datos.id_tematica : actual.id_tematica,
   };
 
   const conflicto = await repositorio.buscarConflictoHorario(nuevo, Number(id));

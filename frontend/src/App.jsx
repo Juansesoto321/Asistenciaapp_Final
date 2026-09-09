@@ -11,6 +11,7 @@ import Fichas from "./paginas/Fichas.jsx";
 import DetalleFicha from "./paginas/DetalleFicha.jsx";
 import Ambientes from "./paginas/Ambientes.jsx";
 import Horarios from "./paginas/Horarios.jsx";
+import Competencias from "./paginas/Competencias.jsx";
 import Sesiones from "./paginas/Sesiones.jsx";
 import SesionEnVivo from "./paginas/SesionEnVivo.jsx";
 import Justificaciones from "./paginas/Justificaciones.jsx";
@@ -42,6 +43,7 @@ export default function App() {
       <Route path="/fichas/:id" element={<Protegida roles={["coordinador","programador","instructor"]}><DetalleFicha /></Protegida>} />
       <Route path="/ambientes" element={<Protegida roles={["coordinador","programador"]}><Ambientes /></Protegida>} />
       <Route path="/horarios" element={<Protegida roles={["coordinador","programador","instructor"]}><Horarios /></Protegida>} />
+      <Route path="/competencias" element={<Protegida roles={["coordinador","programador","instructor"]}><Competencias /></Protegida>} />
       <Route path="/sesiones" element={<Protegida roles={["instructor","coordinador","programador"]}><Sesiones /></Protegida>} />
       <Route path="/sesiones/:id" element={<Protegida roles={["instructor","coordinador","programador"]}><SesionEnVivo /></Protegida>} />
       <Route path="/justificaciones" element={<Protegida roles={["instructor","coordinador","programador"]}><Justificaciones /></Protegida>} />

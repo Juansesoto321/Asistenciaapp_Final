@@ -45,7 +45,8 @@ async function crearFicha(req, res, next) {
 
 async function listarHorarios(req, res, next) {
   try {
-    res.json(await servicio.obtenerHorarios(req.usuario));
+    const { id_instructor, id_ficha, id_ambiente } = req.query;
+    res.json(await servicio.obtenerHorarios(req.usuario, { id_instructor, id_ficha, id_ambiente }));
   } catch (error) {
     next(error);
   }
