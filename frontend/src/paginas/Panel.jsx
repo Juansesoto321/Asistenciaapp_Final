@@ -30,7 +30,7 @@ export default function Panel() {
     } else api("/reportes/estadisticas").then(setDatos).catch(() => {});
   }, [esAprendiz, esGestorAcademico]);
 
-  // Contador de justificaciones pendientes, en tiempo real (instructor/administrador)
+  // Contador de justificaciones pendientes, en tiempo real (instructor/coordinador)
   useEffect(() => {
     if (esAprendiz || esGestorAcademico) return;
     const cargarPendientes = () => api("/justificaciones/pendientes/contador").then((r) => setPendientes(r.pendientes)).catch(() => {});
@@ -103,7 +103,7 @@ export default function Panel() {
         <h3>Accesos rápidos</h3>
         <p style={{ color: "var(--tinta-suave)", margin: "8px 0 14px" }}>Lo más usado según tu rol.</p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {rol === "administrador" && (<>
+          {rol === "coordinador" && (<>
             <Link className="boton suave" to="/usuarios">👥 Gestionar usuarios</Link>
             <Link className="boton suave" to="/fichas">📚 Fichas y matrículas</Link>
             <Link className="boton suave" to="/ambientes">🏫 Lectores biométricos</Link>

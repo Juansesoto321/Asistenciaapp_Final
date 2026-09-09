@@ -35,7 +35,7 @@ async function notificarAdminsSolicitud(mensaje) {
   await pool.query(
     `INSERT INTO notificacion (id_usuario, tipo, titulo, mensaje)
      SELECT id_usuario, 'solicitud_registro', 'Nueva solicitud de registro', $1
-     FROM usuario WHERE rol = 'administrador' AND estado = 'activo'`,
+     FROM usuario WHERE rol = 'coordinador' AND estado = 'activo'`,
     [mensaje]
   );
 }

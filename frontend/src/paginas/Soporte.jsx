@@ -46,16 +46,16 @@ export default function Soporte() {
       </div>
 
       <table className="tabla">
-        <thead><tr><th>#</th>{rol === "administrador" && <th>Usuario</th>}<th>Tipo</th><th>Descripción</th><th>Estado</th>{rol === "administrador" && <th></th>}</tr></thead>
+        <thead><tr><th>#</th>{["coordinador", "programador"].includes(rol) && <th>Usuario</th>}<th>Tipo</th><th>Descripción</th><th>Estado</th>{["coordinador", "programador"].includes(rol) && <th></th>}</tr></thead>
         <tbody>
           {tickets.map((t) => (
             <tr key={t.id_ticket}>
               <td><b>{t.id_ticket}</b></td>
-              {rol === "administrador" && <td>{t.usuario}</td>}
+              {["coordinador", "programador"].includes(rol) && <td>{t.usuario}</td>}
               <td>{t.tipo.replaceAll("_", " ")}</td>
               <td>{t.descripcion}</td>
               <td><span className={`insignia ${t.estado === "resuelto" ? "presente" : t.estado === "en_proceso" ? "tardanza" : "pendiente"}`}>{t.estado.replaceAll("_", " ")}</span></td>
-              {rol === "administrador" && (
+              {["coordinador", "programador"].includes(rol) && (
                 <td style={{ display: "flex", gap: 6 }}>
                   {t.estado !== "resuelto" && <button className="boton mini exito" onClick={() => cambiarEstado(t, "resuelto")}>Resolver</button>}
                   {t.estado === "abierto" && <button className="boton mini suave" onClick={() => cambiarEstado(t, "en_proceso")}>En proceso</button>}

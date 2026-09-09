@@ -21,7 +21,7 @@ export default function Registrarse() {
       <div className="tarjeta-acceso" style={{ maxWidth: 480 }}>
         <div className="logo-acceso"><IconoHuella size="1em" /></div>
         <h1>Crear cuenta</h1>
-        <p className="subtitulo">Tu solicitud quedará pendiente hasta que un administrador la apruebe</p>
+        <p className="subtitulo">Tu solicitud quedará pendiente hasta que un coordinador la apruebe</p>
         {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
         <div className="rejilla-2">
           <div><label>Nombres</label><input value={f.nombres} onChange={c("nombres")} /></div>

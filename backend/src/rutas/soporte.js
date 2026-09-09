@@ -8,6 +8,6 @@ router.use(autenticar);
 
 router.post("/", controlador.crear);
 router.get("/", controlador.listar);
-router.patch("/:id", autorizar("administrador"), controlador.cambiarEstado);
+router.patch("/:id", autorizar("coordinador", "programador"), controlador.cambiarEstado);
 
 module.exports = router;

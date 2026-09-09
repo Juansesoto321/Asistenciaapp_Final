@@ -13,7 +13,7 @@ const controlador = require("../controladores/academico");
 const router = express.Router();
 router.use(autenticar);
 
-const PLANEACION = ["administrador", "programador"];
+const PLANEACION = ["coordinador", "programador"];
 
 // ---------- PERIODOS ----------
 router.get("/periodos", controlador.listarPeriodos);

@@ -78,7 +78,7 @@ export default function DetalleFicha() {
           <h1>Aprendices de la ficha</h1>
           <p>Matrícula y enrolamiento de huella digital (requiere consentimiento del aprendiz).</p>
         </div>
-        {rol === "administrador" && <button className="boton" onClick={abrirMatricular}>+ Matricular aprendices</button>}
+        {["coordinador", "programador"].includes(rol) && <button className="boton" onClick={abrirMatricular}>+ Matricular aprendices</button>}
       </div>
       {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
 
@@ -97,7 +97,7 @@ export default function DetalleFicha() {
               <td style={{ display: "flex", gap: 6 }}>
                 {!m.tiene_huella && m.estado === "activa" &&
                   <button className="boton mini" onClick={() => abrirEnrolar(m)}><IconoHuella /> Enrolar huella</button>}
-                {m.tiene_huella && rol === "administrador" &&
+                {m.tiene_huella && ["coordinador", "programador"].includes(rol) &&
                   <button className="boton mini peligro" onClick={() => eliminarHuella(m)}>Eliminar huella</button>}
               </td>
             </tr>

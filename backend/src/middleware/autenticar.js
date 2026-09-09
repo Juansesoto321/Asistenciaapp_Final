@@ -13,7 +13,7 @@ function autenticar(req, res, next) {
   }
 }
 
-/** Restringe una ruta a ciertos roles. Uso: autorizar('administrador') */
+/** Restringe una ruta a ciertos roles. Uso: autorizar('coordinador') */
 function autorizar(...roles) {
   return (req, res, next) => {
     if (!roles.includes(req.usuario.rol)) {

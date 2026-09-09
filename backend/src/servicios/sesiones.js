@@ -50,7 +50,7 @@ async function iniciarSesion(idHorario, usuario) {
   const h = await repo.buscarHorarioConLector(idHorario);
   if (!h) throw error("Horario no encontrado", "no_encontrado");
 
-  // Regla CU-12: solo el instructor titular (o un administrador)
+  // Regla CU-12: solo el instructor titular (o un coordinador)
   if (usuario.rol === "instructor" && h.id_instructor !== usuario.id)
     throw error("Solo el instructor titular puede iniciar esta sesión", "prohibido");
 
@@ -147,7 +147,7 @@ async function cerrarSesion(idSesion, usuario) {
 }
 
 // Elimina permanentemente una sesion y su asistencia/justificaciones asociadas.
-// Solo administrador: es destructivo e irreversible, pensado para limpiar
+// Solo coordinador: es destructivo e irreversible, pensado para limpiar
 // sesiones de prueba (no para corregir asistencia real - para eso esta CU-15).
 async function eliminarSesion(idSesion, usuario) {
   await enTransaccion(async (cliente) => {

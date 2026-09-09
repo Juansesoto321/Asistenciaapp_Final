@@ -9,7 +9,7 @@ import IconoSoporte from "./IconoSoporte.jsx";
 const SOPORTE = <IconoSoporte />;
 
 const MENUS = {
-  administrador: [
+  coordinador: [
     ["/panel", "📊", "Panel"],
     ["/usuarios", "👥", "Usuarios"],
     ["/fichas", "📚", "Fichas"],
@@ -32,10 +32,17 @@ const MENUS = {
     ["/notificaciones", "🔔", "Notificaciones"],
     ["/soporte", SOPORTE, "Soporte"],
   ],
+  // Mismas opciones del coordinador salvo "Usuarios": el programador apoya la
+  // planeacion academica pero no administra cuentas.
   programador: [
     ["/panel", "📊", "Panel"],
     ["/fichas", "📚", "Fichas"],
+    ["/ambientes", "🏫", "Ambientes y lectores"],
     ["/horarios", "🗓️", "Horarios"],
+    ["/sesiones", "🕒", "Sesiones de clase"],
+    ["/justificaciones", "📄", "Justificaciones"],
+    ["/reportes", "🔎", "Reportes"],
+    ["/configuracion", "⚙️", "Configuración"],
     ["/notificaciones", "🔔", "Notificaciones"],
     ["/perfil", "👤", "Mi perfil"],
     ["/soporte", SOPORTE, "Soporte"],

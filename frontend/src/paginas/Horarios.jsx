@@ -25,7 +25,7 @@ export default function Horarios() {
   const cargar = () => api("/horarios").then(setHorarios).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
   useEffect(() => {
     cargar();
-    if (["administrador", "programador"].includes(rol)) {
+    if (["coordinador", "programador"].includes(rol)) {
       api("/fichas").then(setFichas);
       api("/ambientes").then(setAmbientes);
       api("/instructores").then(setInstructores);
@@ -81,7 +81,7 @@ export default function Horarios() {
       <div className="cabecera-pagina">
         <div><h1>{rol === "instructor" ? "Mis horarios" : "Horarios de clase"}</h1>
         <p>El sistema valida que no haya cruces de instructor ni de ambiente.</p></div>
-        {["administrador", "programador"].includes(rol) && <button className="boton" onClick={() => setModal(true)}>+ Nuevo horario</button>}
+        {["coordinador", "programador"].includes(rol) && <button className="boton" onClick={() => setModal(true)}>+ Nuevo horario</button>}
       </div>
       {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
 
@@ -106,7 +106,7 @@ export default function Horarios() {
       </div>
 
       <table className="tabla">
-        <thead><tr><th>Hora</th><th>Ficha</th><th>Programa</th><th>Ambiente</th><th>Instructor</th>{["administrador", "programador"].includes(rol) && <th></th>}</tr></thead>
+        <thead><tr><th>Hora</th><th>Ficha</th><th>Programa</th><th>Ambiente</th><th>Instructor</th>{["coordinador", "programador"].includes(rol) && <th></th>}</tr></thead>
         <tbody>
           {delDia.map((h) => (
             <tr key={h.id_horario}>
@@ -115,7 +115,7 @@ export default function Horarios() {
               <td>{h.programa}</td>
               <td>{h.numero_ambiente}</td>
               <td>{h.instructor}</td>
-              {["administrador", "programador"].includes(rol) && <td><button className="boton mini peligro" onClick={() => eliminar(h.id_horario)}>Eliminar</button></td>}
+              {["coordinador", "programador"].includes(rol) && <td><button className="boton mini peligro" onClick={() => eliminar(h.id_horario)}>Eliminar</button></td>}
             </tr>
           ))}
           {!delDia.length && <tr><td colSpan={6}><div className="vacio">No hay clases programadas el {DIAS[diaActivo].toLowerCase()}.</div></td></tr>}

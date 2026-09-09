@@ -22,7 +22,7 @@ export default function Perfil() {
   return (
     <>
       <div className="cabecera-pagina">
-        <div><h1>Mi perfil</h1><p>Datos personales y cambio de contraseña. El rol solo lo modifica un administrador.</p></div>
+        <div><h1>Mi perfil</h1><p>Datos personales y cambio de contraseña. El rol solo lo modifica un coordinador.</p></div>
       </div>
       {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
       <div className="tarjeta" style={{ maxWidth: 560 }}>

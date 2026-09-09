@@ -37,17 +37,17 @@ export default function App() {
       <Route path="/justificar/:token" element={<JustificarPublico />} />
 
       <Route path="/panel" element={<Protegida><Panel /></Protegida>} />
-      <Route path="/usuarios" element={<Protegida roles={["administrador"]}><Usuarios /></Protegida>} />
-      <Route path="/fichas" element={<Protegida roles={["administrador","programador","instructor"]}><Fichas /></Protegida>} />
-      <Route path="/fichas/:id" element={<Protegida roles={["administrador","programador","instructor"]}><DetalleFicha /></Protegida>} />
-      <Route path="/ambientes" element={<Protegida roles={["administrador"]}><Ambientes /></Protegida>} />
-      <Route path="/horarios" element={<Protegida roles={["administrador","programador","instructor"]}><Horarios /></Protegida>} />
-      <Route path="/sesiones" element={<Protegida roles={["instructor","administrador"]}><Sesiones /></Protegida>} />
-      <Route path="/sesiones/:id" element={<Protegida roles={["instructor","administrador"]}><SesionEnVivo /></Protegida>} />
-      <Route path="/justificaciones" element={<Protegida roles={["instructor","administrador"]}><Justificaciones /></Protegida>} />
+      <Route path="/usuarios" element={<Protegida roles={["coordinador"]}><Usuarios /></Protegida>} />
+      <Route path="/fichas" element={<Protegida roles={["coordinador","programador","instructor"]}><Fichas /></Protegida>} />
+      <Route path="/fichas/:id" element={<Protegida roles={["coordinador","programador","instructor"]}><DetalleFicha /></Protegida>} />
+      <Route path="/ambientes" element={<Protegida roles={["coordinador","programador"]}><Ambientes /></Protegida>} />
+      <Route path="/horarios" element={<Protegida roles={["coordinador","programador","instructor"]}><Horarios /></Protegida>} />
+      <Route path="/sesiones" element={<Protegida roles={["instructor","coordinador","programador"]}><Sesiones /></Protegida>} />
+      <Route path="/sesiones/:id" element={<Protegida roles={["instructor","coordinador","programador"]}><SesionEnVivo /></Protegida>} />
+      <Route path="/justificaciones" element={<Protegida roles={["instructor","coordinador","programador"]}><Justificaciones /></Protegida>} />
       <Route path="/mi-asistencia" element={<Protegida roles={["aprendiz"]}><MiAsistencia /></Protegida>} />
-      <Route path="/reportes" element={<Protegida roles={["administrador","instructor"]}><Reportes /></Protegida>} />
-      <Route path="/configuracion" element={<Protegida roles={["administrador"]}><Configuracion /></Protegida>} />
+      <Route path="/reportes" element={<Protegida roles={["coordinador","programador","instructor"]}><Reportes /></Protegida>} />
+      <Route path="/configuracion" element={<Protegida roles={["coordinador","programador"]}><Configuracion /></Protegida>} />
       <Route path="/soporte" element={<Protegida><Soporte /></Protegida>} />
       <Route path="/notificaciones" element={<Protegida><Notificaciones /></Protegida>} />
       <Route path="/perfil" element={<Protegida><Perfil /></Protegida>} />

@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS usuario (
   correo            VARCHAR(150) NOT NULL UNIQUE,
   telefono          VARCHAR(20),
   contrasena_hash   VARCHAR(255) NOT NULL,
-  rol               VARCHAR(20)  NOT NULL CHECK (rol IN ('administrador','programador','instructor','aprendiz')),
+  rol               VARCHAR(20)  NOT NULL CHECK (rol IN ('coordinador','programador','instructor','aprendiz')),
   estado            VARCHAR(20)  NOT NULL DEFAULT 'activo'
                     CHECK (estado IN ('activo','pendiente','inactivo','bloqueado')),
   intentos_fallidos INTEGER      NOT NULL DEFAULT 0,

@@ -16,7 +16,7 @@ async function registro(req, res, next) {
   try {
     const { nombres, apellidos, tipo_documento, documento, correo, telefono, contrasena, rol } = req.body;
     await servicio.registrar({ nombres, apellidos, tipoDocumento: tipo_documento, documento, correo, telefono, contrasena, rol });
-    res.status(201).json({ mensaje: "Solicitud enviada. Un administrador aprobará tu cuenta" });
+    res.status(201).json({ mensaje: "Solicitud enviada. Un coordinador aprobará tu cuenta" });
   } catch (error) {
     next(traducirCodigos(error, DUPLICADO));
   }

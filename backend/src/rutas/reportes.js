@@ -9,11 +9,11 @@ const { autenticar, autorizar } = require("../middleware/autenticar");
 const router = express.Router();
 router.use(autenticar);
 
-router.get("/busqueda", autorizar("administrador", "instructor"), controlador.buscar);
-router.get("/exportar", autorizar("administrador", "instructor"), controlador.exportar);
+router.get("/busqueda", autorizar("coordinador", "programador", "instructor"), controlador.buscar);
+router.get("/exportar", autorizar("coordinador", "programador", "instructor"), controlador.exportar);
 router.get("/busquedas-guardadas", controlador.listarBusquedasGuardadas);
 router.post("/busquedas-guardadas", controlador.guardarBusqueda);
 router.get("/mi-historial", autorizar("aprendiz"), controlador.miHistorial);
-router.get("/estadisticas", autorizar("administrador", "instructor"), controlador.estadisticas);
+router.get("/estadisticas", autorizar("coordinador", "programador", "instructor"), controlador.estadisticas);
 
 module.exports = router;

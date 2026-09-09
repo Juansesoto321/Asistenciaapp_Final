@@ -46,7 +46,7 @@ async function buscarInstructorDeAsistencia(idAsistencia) {
 }
 
 async function esPropietario(idJustificacion, usuario) {
-  if (usuario.rol === "administrador") return true;
+  if (usuario.rol === "coordinador" || usuario.rol === "programador") return true;
   const r = await pool.query(
     `SELECT 1 FROM justificacion j
      JOIN asistencia a ON a.id_asistencia = j.id_asistencia
