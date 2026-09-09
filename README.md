@@ -22,17 +22,22 @@ Plataforma web que automatiza el registro de asistencia de aprendices mediante l
 
 ### Backend en capas
 
-La gestión académica sigue este flujo:
+**Todo** el backend sigue este flujo unidireccional:
 
 `rutas -> controladores -> servicios -> repositorios -> PostgreSQL`
 
-- `rutas/academico.js`: define URLs, autenticación y autorización.
-- `controladores/academico.js`: traduce peticiones y respuestas HTTP.
-- `servicios/academico.js`: contiene reglas de negocio y auditoría.
-- `repositorios/academico.js`: concentra las consultas SQL académicas.
+- `rutas/`: define URLs, método HTTP, autenticación y autorización. Sin lógica.
+- `controladores/`: leen la petición y arman la respuesta; los errores se
+  delegan con `next(error)`.
+- `servicios/`: reglas de negocio, validaciones y transacciones. No conocen
+  `req` ni `res`.
+- `repositorios/`: único lugar donde se ejecuta SQL.
 
-Matrículas, ambientes y dispositivos conservan temporalmente la implementación
-anterior para migrarlos de forma incremental sin romper la aplicación.
+El manejo de errores está centralizado en `middleware/manejadorErrores.js`: los
+servicios lanzan errores marcados con un `tipo` (`validacion`, `no_encontrado`,
+`prohibido`…) y ese middleware los traduce a códigos HTTP en un solo sitio.
+Todo error inesperado responde 500 y queda registrado en la tabla `log_error`,
+consultable en `/api/logs`.
 
 | Componente | Tecnología | Carpeta |
 |---|---|---|
@@ -89,15 +94,18 @@ Sin SMTP, los correos se imprimen en la consola del backend (útil para la demo)
 
 Los soportes se almacenan en la base de datos, en `justificacion.archivo_datos`, como
 data URI en base64; no se crea una carpeta de imágenes en el backend. Se consultan
-mediante `GET /api/justificaciones/:id/archivo` (requiere rol instructor o administrador).
+mediante `GET /api/justificaciones/:id/archivo` (requiere rol instructor, coordinador o programador).
 Se aceptan `.jpg`, `.jpeg`, `.png`, `.webp` y `.pdf`, con un límite de 5 MB en la interfaz.
 El límite HTTP del backend es de 10 MB para permitir la codificación base64.
 
 ### Actualizar una instalación existente
 
-Las bases nuevas toman el rol `programador` desde `db/init.sql`. En una base ya creada,
-ejecuta una vez `db/migracion_programador.sql`. Este rol gestiona fichas, periodos y
-horarios, pero no usuarios, sesiones de clase ni biometría.
+`npm run sembrar` aplica el esquema y **todas** las migraciones de `db/migracion_*.sql`
+(son idempotentes), así que sirve igual para una base nueva que para una existente.
+Con Docker: `docker compose exec backend npm run sembrar`.
+
+Los roles son `coordinador`, `programador`, `instructor` y `aprendiz`. El programador
+tiene las mismas atribuciones del coordinador **salvo administrar usuarios**.
 
 Las fichas pasan automáticamente a `finalizada` cuando termina su `fecha_fin`; sus
 matrículas activas también se marcan como `finalizada`.
@@ -115,7 +123,7 @@ matrículas activas también se marcan como `finalizada`.
 
 | Rol | Correo | Contraseña |
 |---|---|---|
-| Administrador | admin@sena.edu.co | Admin123* |
+| Coordinador | admin@sena.edu.co | Admin123* |
 | Programador | programador@sena.edu.co | Programador123* |
 | Instructor | cristian.buitrago@sena.edu.co | Instructor123* |
 | Aprendiz | camilap.m1230@gmail.com | Aprendiz123* |
@@ -157,15 +165,20 @@ El aprendiz se matricula en el propio dispositivo usando como PIN su número de 
 
 ```
 asistenciaapp/
-├── db/init.sql                  # Esquema completo (19 tablas) + configuración
+├── db/init.sql                  # Esquema completo + configuración inicial
+├── db/migracion_*.sql           # Migraciones idempotentes (roles, logs, competencias)
 ├── backend/
-│   ├── src/index.js             # Servidor + tareas programadas (72h, heartbeats)
-│   ├── src/rutas/               # auth, usuarios, academico, biometria, lector,
-│   │                            # adms (lector real), sesiones, justificaciones,
-│   │                            # reportes, varios
-│   ├── src/servicios/           # cifrado AES-256, correo, tiempo real, auditoría
-│   └── src/scripts/sembrar.js   # npm run sembrar
-├── frontend/src/paginas/        # 19 vistas (admin, instructor, aprendiz, públicas)
+│   ├── src/app.js               # Punto de entrada: middlewares, rutas y servidor
+│   ├── src/rutas/               # Solo URLs, método HTTP y autorización
+│   ├── src/controladores/       # Leen la petición y responden; delegan con next(error)
+│   ├── src/servicios/           # Reglas de negocio (no conocen req ni res)
+│   ├── src/repositorios/        # Único lugar que toca la base de datos
+│   ├── src/middleware/          # autenticar, autenticarDispositivo, manejadorErrores
+│   └── src/scripts/sembrar.js   # npm run sembrar (esquema + migraciones + demo)
+├── frontend/src/paginas/        # Vistas por rol + públicas
 ├── simulador-lector/simulador.js
 └── docker-compose.yml
 ```
+
+El flujo es unidireccional, según la Guía 6 del programa:
+`Cliente HTTP → rutas → controladores → servicios → repositorios → BD`

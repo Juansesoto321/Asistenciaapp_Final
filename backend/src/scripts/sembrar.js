@@ -8,12 +8,28 @@ const path = require("path");
 const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
 
-async function main() {
+const CARPETA_DB = path.join(__dirname, "../../../db");
+
+/**
+ * Aplica el esquema y despues TODAS las migraciones (db/migracion_*.sql, en
+ * orden alfabetico). Todas son idempotentes, asi que sirve igual para una base
+ * nueva que para una existente: ejecutar `npm run sembrar` la deja al dia.
+ */
+async function aplicarEsquema() {
   console.log("Creando esquema...");
-  const sql = fs.readFileSync(path.join(__dirname, "../../../db/init.sql"), "utf8");
-  await pool.query(sql);
-  const migracionRoles = fs.readFileSync(path.join(__dirname, "../../../db/migracion_roles.sql"), "utf8");
-  await pool.query(migracionRoles);
+  await pool.query(fs.readFileSync(path.join(CARPETA_DB, "init.sql"), "utf8"));
+
+  const migraciones = fs.readdirSync(CARPETA_DB)
+    .filter((f) => f.startsWith("migracion_") && f.endsWith(".sql"))
+    .sort();
+  for (const archivo of migraciones) {
+    console.log(`  migración: ${archivo}`);
+    await pool.query(fs.readFileSync(path.join(CARPETA_DB, archivo), "utf8"));
+  }
+}
+
+async function main() {
+  await aplicarEsquema();
 
   const hayUsuarios = await pool.query("SELECT 1 FROM usuario LIMIT 1");
   if (hayUsuarios.rows.length) {

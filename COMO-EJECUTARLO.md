@@ -44,7 +44,7 @@ http://localhost:8080
 
 | Rol | Correo | Contraseña |
 |---|---|---|
-| Administrador | admin@sena.edu.co | Admin123* |
+| Coordinador | admin@sena.edu.co | Admin123* |
 | Instructor | cristian.buitrago@sena.edu.co | 
  |
 | Aprendiz | camilap.m1230@gmail.com | Aprendiz123* |
