@@ -12,11 +12,22 @@ export default function Panel() {
 
   const [datos, setDatos] = useState(null);
   const [historial, setHistorial] = useState(null);
+  const [datosGestor, setDatosGestor] = useState(null); // fichas/horarios/periodos (programador)
   const [pendientes, setPendientes] = useState(null); // justificaciones por revisar (instructor/admin)
 
   useEffect(() => {
     if (esAprendiz) api("/reportes/mi-historial").then(setHistorial).catch(() => {});
-    else if (!esGestorAcademico) api("/reportes/estadisticas").then(setDatos).catch(() => {});
+    else if (esGestorAcademico) {
+      // El rol programador no tiene acceso a /reportes/estadisticas (es de
+      // asistencia); se arman sus propias cifras con lo que sí puede ver.
+      Promise.all([api("/fichas"), api("/horarios"), api("/periodos")])
+        .then(([fichas, horarios, periodos]) => setDatosGestor({
+          fichas_activas: fichas.filter((f) => f.estado === "activa").length,
+          horarios_programados: horarios.length,
+          periodos: periodos.length,
+        }))
+        .catch(() => {});
+    } else api("/reportes/estadisticas").then(setDatos).catch(() => {});
   }, [esAprendiz, esGestorAcademico]);
 
   // Contador de justificaciones pendientes, en tiempo real (instructor/administrador)
@@ -63,6 +74,14 @@ export default function Panel() {
           <div className="tarjeta-metrica"><div className="valor">{datos.aprendices_activos}</div><div className="nombre">Aprendices activos</div></div>
           <div className="tarjeta-metrica"><div className="valor">{datos.sesiones_hoy}</div><div className="nombre">Sesiones hoy</div></div>
           <div className="tarjeta-metrica"><div className="valor">{datos.promedio_asistencia}%</div><div className="nombre">Asistencia promedio</div></div>
+        </div>
+      )}
+
+      {esGestorAcademico && datosGestor && (
+        <div className="fila-tarjetas">
+          <div className="tarjeta-metrica"><div className="valor">{datosGestor.fichas_activas}</div><div className="nombre">Fichas activas</div></div>
+          <div className="tarjeta-metrica"><div className="valor">{datosGestor.horarios_programados}</div><div className="nombre">Horarios programados</div></div>
+          <div className="tarjeta-metrica"><div className="valor">{datosGestor.periodos}</div><div className="nombre">Periodos</div></div>
         </div>
       )}
 
