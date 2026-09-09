@@ -1,6 +1,6 @@
 /**
  * CU-01 Iniciar sesion · CU-02 Recuperar contrasena · CU-03 Actualizar perfil
- * CU-22 Auto-registro con aprobacion del administrador
+ * CU-22 Auto-registro con aprobacion del coordinador
  */
 const express = require("express");
 const controlador = require("../controladores/auth");

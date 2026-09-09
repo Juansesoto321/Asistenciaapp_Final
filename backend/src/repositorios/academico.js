@@ -59,24 +59,47 @@ async function crearFicha(datos) {
   return resultado.rows[0];
 }
 
-async function listarHorarios(usuario) {
-  const filtro = usuario.rol === "instructor" ? "WHERE h.id_instructor = $1" : "";
-  const valores = usuario.rol === "instructor" ? [usuario.id] : [];
+/**
+ * `filtros` permite acotar por instructor, ficha o ambiente (el calendario exige
+ * elegir uno antes de mostrar nada). El instructor siempre queda limitado a lo suyo.
+ */
+async function listarHorarios(usuario, filtros = {}) {
+  const condiciones = [];
+  const valores = [];
+  const agregar = (sql, valor) => {
+    valores.push(valor);
+    condiciones.push(sql.replace("?", `$${valores.length}`));
+  };
+
+  if (usuario.rol === "instructor") agregar("h.id_instructor = ?", usuario.id);
+  else if (filtros.id_instructor) agregar("h.id_instructor = ?", filtros.id_instructor);
+  if (filtros.id_ficha) agregar("h.id_ficha = ?", filtros.id_ficha);
+  if (filtros.id_ambiente) agregar("h.id_ambiente = ?", filtros.id_ambiente);
+
+  const where = condiciones.length ? `WHERE ${condiciones.join(" AND ")}` : "";
   const resultado = await pool.query(
-    `SELECT h.*, f.numero_ficha, f.programa, a.numero_ambiente,
-            u.nombres || ' ' || u.apellidos AS instructor
+    `SELECT h.*, f.numero_ficha, f.programa, a.numero_ambiente, a.sede_centro,
+            u.nombres || ' ' || u.apellidos AS instructor,
+            rap.codigo AS codigo_rap, rap.nombre AS resultado_aprendizaje,
+            c.nombre AS competencia, t.nombre AS tematica,
+            p.nombre AS periodo, p.fecha_inicio AS periodo_inicio, p.fecha_fin AS periodo_fin
      FROM horario h
      JOIN ficha f ON f.id_ficha = h.id_ficha
      JOIN ambiente a ON a.id_ambiente = h.id_ambiente
      JOIN usuario u ON u.id_usuario = h.id_instructor
-     ${filtro}
+     JOIN periodo p ON p.id_periodo = h.id_periodo
+     LEFT JOIN resultado_aprendizaje rap ON rap.id_rap = h.id_rap
+     LEFT JOIN competencia c ON c.id_competencia = rap.id_competencia
+     LEFT JOIN tematica t ON t.id_tematica = h.id_tematica
+     ${where}
      ORDER BY h.dia_semana, h.hora_inicio`,
     valores
   );
   return resultado.rows;
 }
 
-async function buscarConflictoHorario(datos) {
+/** `idExcluir` evita que un horario choque consigo mismo al editarlo. */
+async function buscarConflictoHorario(datos, idExcluir = null) {
   const resultado = await pool.query(
     `SELECT h.id_horario, f.numero_ficha,
             CASE WHEN h.id_instructor = $1 THEN 'instructor' ELSE 'ambiente' END AS tipo
@@ -84,17 +107,38 @@ async function buscarConflictoHorario(datos) {
      WHERE h.dia_semana = $3
        AND (h.id_instructor = $1 OR h.id_ambiente = $2)
        AND (h.hora_inicio, h.hora_fin) OVERLAPS ($4::time, $5::time)
+       AND ($6::int IS NULL OR h.id_horario <> $6)
      LIMIT 1`,
-    [datos.id_instructor, datos.id_ambiente, datos.dia_semana, datos.hora_inicio, datos.hora_fin]
+    [datos.id_instructor, datos.id_ambiente, datos.dia_semana, datos.hora_inicio, datos.hora_fin, idExcluir]
   );
   return resultado.rows[0];
 }
 
+async function buscarHorario(id) {
+  const resultado = await pool.query("SELECT * FROM horario WHERE id_horario = $1", [id]);
+  return resultado.rows[0] || null;
+}
+
+async function editarHorario(id, datos) {
+  const resultado = await pool.query(
+    `UPDATE horario SET id_ficha = $1, id_ambiente = $2, id_instructor = $3,
+            id_periodo = $4, dia_semana = $5, hora_inicio = $6, hora_fin = $7,
+            id_rap = $8, id_tematica = $9
+     WHERE id_horario = $10 RETURNING *`,
+    [datos.id_ficha, datos.id_ambiente, datos.id_instructor, datos.id_periodo,
+     datos.dia_semana, datos.hora_inicio, datos.hora_fin,
+     datos.id_rap || null, datos.id_tematica || null, id]
+  );
+  return resultado.rows[0] || null;
+}
+
 async function crearHorario(datos) {
   const resultado = await pool.query(
-    `INSERT INTO horario (id_ficha, id_ambiente, id_instructor, id_periodo, dia_semana, hora_inicio, hora_fin)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [datos.id_ficha, datos.id_ambiente, datos.id_instructor, datos.id_periodo, datos.dia_semana, datos.hora_inicio, datos.hora_fin]
+    `INSERT INTO horario (id_ficha, id_ambiente, id_instructor, id_periodo, dia_semana,
+                          hora_inicio, hora_fin, id_rap, id_tematica)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+    [datos.id_ficha, datos.id_ambiente, datos.id_instructor, datos.id_periodo, datos.dia_semana,
+     datos.hora_inicio, datos.hora_fin, datos.id_rap || null, datos.id_tematica || null]
   );
   return resultado.rows[0];
 }
@@ -164,6 +208,7 @@ async function listarDispositivos() {
 }
 
 module.exports = {
+  finalizarFichasVencidas,
   listarPeriodos,
   listarInstructores,
   listarFichas,
@@ -171,7 +216,9 @@ module.exports = {
   crearFicha,
   listarHorarios,
   buscarConflictoHorario,
+  buscarHorario,
   crearHorario,
+  editarHorario,
   eliminarHorario,
   listarMatriculasDeFicha,
   matricularAprendiz,

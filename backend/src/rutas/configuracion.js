@@ -7,6 +7,6 @@ const router = express.Router();
 router.use(autenticar);
 
 router.get("/", controlador.obtener);
-router.put("/", autorizar("administrador"), controlador.actualizar);
+router.put("/", autorizar("coordinador", "programador"), controlador.actualizar);
 
 module.exports = router;

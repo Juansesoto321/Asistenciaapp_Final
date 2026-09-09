@@ -88,7 +88,7 @@ export default function Usuarios() {
                value={filtro.buscar} onChange={(e) => setFiltro({ ...filtro, buscar: e.target.value })} />
         <select style={{ maxWidth: 170 }} value={filtro.rol} onChange={(e) => setFiltro({ ...filtro, rol: e.target.value })}>
           <option value="">Todos los roles</option>
-          <option value="administrador">Administrador</option>
+          <option value="coordinador">Coordinador</option>
           <option value="instructor">Instructor</option>
           <option value="programador">Programador</option>
           <option value="aprendiz">Aprendiz</option>
@@ -141,7 +141,7 @@ export default function Usuarios() {
               <option value="aprendiz">Aprendiz</option>
               <option value="instructor">Instructor</option>
               <option value="programador">Programador</option>
-              <option value="administrador">Administrador</option>
+              <option value="coordinador">Coordinador</option>
             </select>
             <div className="acciones-modal">
               <button className="boton suave" onClick={() => setModal(null)}>Cancelar</button>

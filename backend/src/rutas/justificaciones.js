@@ -14,9 +14,9 @@ router.post("/token/:token", controlador.enviarPorToken);
 
 // --- AUTENTICADO ---
 router.use(autenticar);
-router.get("/", autorizar("instructor", "administrador"), controlador.listarBandeja);
-router.get("/pendientes/contador", autorizar("instructor", "administrador"), controlador.contarPendientes);
-router.get("/:id/archivo", autorizar("instructor", "administrador"), controlador.verArchivo);
-router.patch("/:id", autorizar("instructor", "administrador"), controlador.validar);
+router.get("/", autorizar("instructor", "coordinador", "programador"), controlador.listarBandeja);
+router.get("/pendientes/contador", autorizar("instructor", "coordinador", "programador"), controlador.contarPendientes);
+router.get("/:id/archivo", autorizar("instructor", "coordinador", "programador"), controlador.verArchivo);
+router.patch("/:id", autorizar("instructor", "coordinador", "programador"), controlador.validar);
 
 module.exports = router;

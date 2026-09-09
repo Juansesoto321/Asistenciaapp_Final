@@ -8,12 +8,28 @@ const path = require("path");
 const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
 
-async function main() {
+const CARPETA_DB = path.join(__dirname, "../../../db");
+
+/**
+ * Aplica el esquema y despues TODAS las migraciones (db/migracion_*.sql, en
+ * orden alfabetico). Todas son idempotentes, asi que sirve igual para una base
+ * nueva que para una existente: ejecutar `npm run sembrar` la deja al dia.
+ */
+async function aplicarEsquema() {
   console.log("Creando esquema...");
-  const sql = fs.readFileSync(path.join(__dirname, "../../../db/init.sql"), "utf8");
-  await pool.query(sql);
-  const migracionProgramador = fs.readFileSync(path.join(__dirname, "../../../db/migracion_programador.sql"), "utf8");
-  await pool.query(migracionProgramador);
+  await pool.query(fs.readFileSync(path.join(CARPETA_DB, "init.sql"), "utf8"));
+
+  const migraciones = fs.readdirSync(CARPETA_DB)
+    .filter((f) => f.startsWith("migracion_") && f.endsWith(".sql"))
+    .sort();
+  for (const archivo of migraciones) {
+    console.log(`  migración: ${archivo}`);
+    await pool.query(fs.readFileSync(path.join(CARPETA_DB, archivo), "utf8"));
+  }
+}
+
+async function main() {
+  await aplicarEsquema();
 
   const hayUsuarios = await pool.query("SELECT 1 FROM usuario LIMIT 1");
   if (hayUsuarios.rows.length) {
@@ -36,7 +52,7 @@ async function main() {
 
   const admin = await pool.query(
     `INSERT INTO usuario (nombres, apellidos, documento, correo, contrasena_hash, rol)
-     VALUES ('Administrador','Sistema','1000000001','admin@sena.edu.co',$1,'administrador') RETURNING id_usuario`,
+     VALUES ('Coordinador','Sistema','1000000001','admin@sena.edu.co',$1,'coordinador') RETURNING id_usuario`,
     [hAdmin]
   );
   await pool.query(
@@ -105,7 +121,7 @@ async function main() {
 Datos sembrados correctamente.
 
 CUENTAS DE DEMOSTRACIÓN
-  Administrador:  admin@sena.edu.co               / Admin123*
+  Coordinador:  admin@sena.edu.co               / Admin123*
   Programador:    programador@sena.edu.co         / Programador123*
   Instructor:     cristian.buitrago@sena.edu.co   / Instructor123*
   Aprendices:     camilap.m1230@gmail.com           / Aprendiz123*

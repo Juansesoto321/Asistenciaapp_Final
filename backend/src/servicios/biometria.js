@@ -1,5 +1,5 @@
-const pool = require("../config/db");
 const repositorio = require("../repositorios/biometria");
+const { enTransaccion } = require("../repositorios/transaccion");
 const { cifrar, generarTemplateSimulado } = require("./cifrado");
 const { auditar } = require("./auditoria");
 const { emitirNotificacionNueva } = require("./tiempoReal");
@@ -31,20 +31,12 @@ async function enrolar({ idAprendiz, aceptaConsentimiento, lectura1, lectura2 },
   if (await repositorio.existePlantilla(idAprendiz))
     throw Object.assign(new Error("El aprendiz ya tiene una huella registrada. Elimínala primero para re-enrolar"), { tipo: "validacion" });
 
-  const cliente = await pool.connect();
-  try {
-    await cliente.query("BEGIN");
+  await enTransaccion(async (cliente) => {
     const idConsentimiento = await repositorio.insertarConsentimiento(cliente, idAprendiz);
     const template = generarTemplateSimulado(lectura1);
     const cifrado = cifrar(template);
     await repositorio.insertarPlantilla(cliente, { idAprendiz, cifrado, idConsentimiento });
-    await cliente.query("COMMIT");
-  } catch (e) {
-    await cliente.query("ROLLBACK");
-    throw e;
-  } finally {
-    cliente.release();
-  }
+  });
   await auditar(idUsuarioActor, "enrollment_biometrico", "usuario", idAprendiz);
 }
 

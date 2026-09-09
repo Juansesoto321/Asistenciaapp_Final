@@ -9,12 +9,13 @@ import IconoSoporte from "./IconoSoporte.jsx";
 const SOPORTE = <IconoSoporte />;
 
 const MENUS = {
-  administrador: [
+  coordinador: [
     ["/panel", "📊", "Panel"],
     ["/usuarios", "👥", "Usuarios"],
     ["/fichas", "📚", "Fichas"],
     ["/ambientes", "🏫", "Ambientes y lectores"],
     ["/horarios", "🗓️", "Horarios"],
+    ["/competencias", "🎯", "Competencias"],
     ["/sesiones", "🕒", "Sesiones de clase"],
     ["/justificaciones", "📄", "Justificaciones"],
     ["/reportes", "🔎", "Reportes"],
@@ -27,15 +28,24 @@ const MENUS = {
     ["/sesiones", "🕒", "Mis clases de hoy"],
     ["/fichas", "📚", "Mis fichas"],
     ["/horarios", "🗓️", "Mis horarios"],
+    ["/competencias", "🎯", "Competencias"],
     ["/justificaciones", "📄", "Justificaciones"],
     ["/reportes", "🔎", "Reportes"],
     ["/notificaciones", "🔔", "Notificaciones"],
     ["/soporte", SOPORTE, "Soporte"],
   ],
+  // Mismas opciones del coordinador salvo "Usuarios": el programador apoya la
+  // planeacion academica pero no administra cuentas.
   programador: [
     ["/panel", "📊", "Panel"],
     ["/fichas", "📚", "Fichas"],
+    ["/ambientes", "🏫", "Ambientes y lectores"],
     ["/horarios", "🗓️", "Horarios"],
+    ["/competencias", "🎯", "Competencias"],
+    ["/sesiones", "🕒", "Sesiones de clase"],
+    ["/justificaciones", "📄", "Justificaciones"],
+    ["/reportes", "🔎", "Reportes"],
+    ["/configuracion", "⚙️", "Configuración"],
     ["/notificaciones", "🔔", "Notificaciones"],
     ["/perfil", "👤", "Mi perfil"],
     ["/soporte", SOPORTE, "Soporte"],

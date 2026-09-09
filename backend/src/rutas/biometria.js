@@ -8,7 +8,7 @@ router.use(autenticar);
 
 router.get("/consentimiento/texto", controlador.textoConsentimiento);
 router.get("/:idAprendiz/estado", controlador.estado);
-router.post("/enrolar", autorizar("administrador", "instructor"), controlador.enrolar);
-router.delete("/:idAprendiz", autorizar("administrador"), controlador.eliminar);
+router.post("/enrolar", autorizar("coordinador", "programador", "instructor"), controlador.enrolar);
+router.delete("/:idAprendiz", autorizar("coordinador", "programador"), controlador.eliminar);
 
 module.exports = router;

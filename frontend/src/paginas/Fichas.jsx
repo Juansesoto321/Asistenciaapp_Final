@@ -18,7 +18,7 @@ export default function Fichas() {
   const cargar = () => api("/fichas").then(setFichas).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
   useEffect(() => {
     cargar();
-    if (["administrador", "programador"].includes(rol)) {
+    if (["coordinador", "programador"].includes(rol)) {
       api("/periodos").then(setPeriodos);
       api("/instructores").then(setInstructores);
     }
@@ -38,7 +38,7 @@ export default function Fichas() {
       <div className="cabecera-pagina">
         <div><h1>{rol === "instructor" ? "Mis fichas" : "Fichas de formación"}</h1>
         <p>Programas, matrículas y enrolamiento de huella por ficha.</p></div>
-        {["administrador", "programador"].includes(rol) && <button className="boton" onClick={() => setModal(true)}>+ Nueva ficha</button>}
+        {["coordinador", "programador"].includes(rol) && <button className="boton" onClick={() => setModal(true)}>+ Nueva ficha</button>}
       </div>
       {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
 

@@ -4,7 +4,7 @@ const repositorio = require("../repositorios/usuarios");
 const { enviarCorreo } = require("./correo");
 const { auditar } = require("./auditoria");
 
-const ROLES_VALIDOS = ["administrador", "programador", "instructor", "aprendiz"];
+const ROLES_VALIDOS = ["coordinador", "programador", "instructor", "aprendiz"];
 
 function generarContrasenaTemporal() {
   return `Sena${crypto.randomBytes(3).toString("hex")}*1`;

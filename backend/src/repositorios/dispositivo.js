@@ -14,4 +14,13 @@ async function marcarEnLinea(idDispositivo) {
   );
 }
 
-module.exports = { buscarPorSerial, marcarEnLinea };
+/** Tarea programada CU-09: sin heartbeat en 3 minutos, el lector se da por caido. */
+async function marcarFueraDeLineaSinHeartbeat() {
+  const r = await pool.query(
+    `UPDATE dispositivo SET estado = 'fuera_de_linea'
+     WHERE estado = 'en_linea' AND ultimo_heartbeat < NOW() - INTERVAL '3 minutes'`
+  );
+  return r.rowCount;
+}
+
+module.exports = { buscarPorSerial, marcarEnLinea, marcarFueraDeLineaSinHeartbeat };

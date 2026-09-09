@@ -1,137 +1,142 @@
 const servicio = require("../servicios/academico");
+const { traducirCodigos } = require("../middleware/manejadorErrores");
 
-function responderError(res, error, mensaje) {
-  if (error.code === "23505") return res.status(400).json({ mensaje: "El registro ya existe" });
-  if (error.code === "23514") return res.status(400).json({ mensaje: "La fecha fin debe ser posterior a la fecha inicio" });
-  if (error.tipo === "conflicto_horario" || error.tipo === "validacion") return res.status(400).json({ mensaje: error.message });
-  console.error(error);
-  return res.status(500).json({ mensaje });
-}
+const FECHAS_INVALIDAS = { 23514: "La fecha fin debe ser posterior a la fecha inicio" };
 
-async function listarPeriodos(_req, res) {
+async function listarPeriodos(_req, res, next) {
   try {
     res.json(await servicio.obtenerPeriodos());
   } catch (error) {
-    responderError(res, error, "Error al listar los periodos");
+    next(error);
   }
 }
 
-async function listarInstructores(_req, res) {
+async function listarInstructores(_req, res, next) {
   try {
     res.json(await servicio.obtenerInstructores());
   } catch (error) {
-    responderError(res, error, "Error al listar los instructores");
+    next(error);
   }
 }
 
-async function crearPeriodo(req, res) {
+async function crearPeriodo(req, res, next) {
   try {
     res.status(201).json(await servicio.crearPeriodo(req.body));
   } catch (error) {
-    responderError(res, error, "Error al crear el periodo");
+    next(traducirCodigos(error, FECHAS_INVALIDAS));
   }
 }
 
-async function listarFichas(req, res) {
+async function listarFichas(req, res, next) {
   try {
     res.json(await servicio.obtenerFichas(req.usuario));
   } catch (error) {
-    responderError(res, error, "Error al listar las fichas");
+    next(error);
   }
 }
 
-async function crearFicha(req, res) {
+async function crearFicha(req, res, next) {
   try {
     res.status(201).json(await servicio.crearFicha(req.body, req.usuario));
   } catch (error) {
-    responderError(res, error, "Error al crear la ficha");
+    next(traducirCodigos(error, FECHAS_INVALIDAS));
   }
 }
 
-async function listarHorarios(req, res) {
+async function listarHorarios(req, res, next) {
   try {
-    res.json(await servicio.obtenerHorarios(req.usuario));
+    const { id_instructor, id_ficha, id_ambiente } = req.query;
+    res.json(await servicio.obtenerHorarios(req.usuario, { id_instructor, id_ficha, id_ambiente }));
   } catch (error) {
-    responderError(res, error, "Error al listar los horarios");
+    next(error);
   }
 }
 
-async function crearHorario(req, res) {
+async function crearHorario(req, res, next) {
   try {
     res.status(201).json(await servicio.crearHorario(req.body, req.usuario));
   } catch (error) {
-    responderError(res, error, "Error al crear el horario");
+    next(error);
   }
 }
 
-async function eliminarHorario(req, res) {
+async function editarHorario(req, res, next) {
+  try {
+    res.json(await servicio.editarHorario(req.params.id, req.body, req.usuario));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function eliminarHorario(req, res, next) {
   try {
     await servicio.eliminarHorario(req.params.id, req.usuario);
     res.json({ mensaje: "Horario eliminado" });
   } catch (error) {
-    if (error.code === "23503") return res.status(400).json({ mensaje: "No se puede eliminar: ya existen sesiones de clase registradas para este horario" });
-    responderError(res, error, "Error al eliminar el horario");
+    next(traducirCodigos(error, {
+      23503: "No se puede eliminar: ya existen sesiones de clase registradas para este horario",
+    }));
   }
 }
 
 // ---------- MATRICULAS (CU-06) ----------
-async function listarMatriculas(req, res) {
+async function listarMatriculas(req, res, next) {
   try {
     res.json(await servicio.obtenerMatriculasDeFicha(req.params.id));
   } catch (error) {
-    responderError(res, error, "Error al listar las matrículas");
+    next(error);
   }
 }
 
-async function matricular(req, res) {
+async function matricular(req, res, next) {
   try {
     res.json(await servicio.matricularAprendices(req.params.id, req.body.ids_aprendices, req.usuario));
   } catch (error) {
-    responderError(res, error, "Error al matricular aprendices");
+    next(error);
   }
 }
 
-async function cambiarEstadoMatricula(req, res) {
+async function cambiarEstadoMatricula(req, res, next) {
   try {
     await servicio.cambiarEstadoMatricula(req.params.id, req.body.estado, req.usuario);
     res.json({ mensaje: "Matrícula actualizada" });
   } catch (error) {
-    responderError(res, error, "Error al actualizar la matrícula");
+    next(error);
   }
 }
 
 // ---------- AMBIENTES Y DISPOSITIVOS (CU-07, CU-09) ----------
-async function listarAmbientes(_req, res) {
+async function listarAmbientes(_req, res, next) {
   try {
     res.json(await servicio.obtenerAmbientes());
   } catch (error) {
-    responderError(res, error, "Error al listar los ambientes");
+    next(error);
   }
 }
 
-async function crearAmbiente(req, res) {
+async function crearAmbiente(req, res, next) {
   try {
     res.status(201).json(await servicio.crearAmbiente(req.body, req.usuario));
   } catch (error) {
-    if (error.code === "23503") return res.status(400).json({ mensaje: "El periodo indicado no existe" });
-    responderError(res, error, "Error al crear el ambiente");
+    next(traducirCodigos(error, { 23503: "El periodo indicado no existe" }));
   }
 }
 
-async function asociarDispositivo(req, res) {
+async function asociarDispositivo(req, res, next) {
   try {
     res.status(201).json(await servicio.asociarDispositivo(req.params.id, req.body, req.usuario));
   } catch (error) {
-    if (error.code === "23505") return res.status(400).json({ mensaje: "Serial duplicado o el ambiente ya tiene un lector asociado" });
-    responderError(res, error, "Error al registrar el dispositivo");
+    next(traducirCodigos(error, {
+      23505: "Serial duplicado o el ambiente ya tiene un lector asociado",
+    }));
   }
 }
 
-async function listarDispositivos(_req, res) {
+async function listarDispositivos(_req, res, next) {
   try {
     res.json(await servicio.obtenerDispositivos());
   } catch (error) {
-    responderError(res, error, "Error al listar los dispositivos");
+    next(error);
   }
 }
 
@@ -143,6 +148,7 @@ module.exports = {
   crearFicha,
   listarHorarios,
   crearHorario,
+  editarHorario,
   eliminarHorario,
   listarMatriculas,
   matricular,

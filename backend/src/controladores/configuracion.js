@@ -1,21 +1,19 @@
 const servicio = require("../servicios/configuracion");
 
-async function obtener(_req, res) {
+async function obtener(_req, res, next) {
   try {
     res.json(await servicio.obtener());
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: "Error al obtener la configuración" });
+    next(error);
   }
 }
 
-async function actualizar(req, res) {
+async function actualizar(req, res, next) {
   try {
     await servicio.actualizar(req.body, req.usuario.id);
     res.json({ mensaje: "Configuración guardada" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: "Error al guardar la configuración" });
+    next(error);
   }
 }
 

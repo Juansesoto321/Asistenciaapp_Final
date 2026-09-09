@@ -22,8 +22,8 @@ async function login(correo, contrasena) {
   const credencialesInvalidas = () => error("Correo o contraseña incorrectos", "credenciales");
   if (!u) throw credencialesInvalidas();
 
-  if (u.estado === "pendiente") throw error("Tu cuenta está pendiente de aprobación por el administrador", "cuenta_pendiente");
-  if (u.estado === "inactivo") throw error("Tu cuenta está desactivada. Contacta al administrador", "cuenta_inactiva");
+  if (u.estado === "pendiente") throw error("Tu cuenta está pendiente de aprobación por el coordinador", "cuenta_pendiente");
+  if (u.estado === "inactivo") throw error("Tu cuenta está desactivada. Contacta al coordinador", "cuenta_inactiva");
   if (u.estado === "bloqueado" && u.bloqueado_hasta && new Date(u.bloqueado_hasta) > new Date())
     throw error("Cuenta bloqueada por intentos fallidos. Intenta más tarde o recupera tu contraseña", "cuenta_bloqueada");
 

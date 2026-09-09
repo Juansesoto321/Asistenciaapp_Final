@@ -7,13 +7,14 @@ async function crear({ idUsuario, tipo, descripcion }) {
   if (!tipo || !descripcion?.trim())
     throw Object.assign(new Error("Selecciona un tipo y describe el problema"), { tipo: "validacion" });
   const idTicket = await repositorio.crearTicket({ idUsuario, tipo, descripcion });
-  await repositorio.notificarAdministradores(idTicket, tipo);
+  await repositorio.notificarCoordinadores(idTicket, tipo);
   emitirNotificacionAdmins();
   return idTicket;
 }
 
 async function obtenerListado(usuario) {
-  return repositorio.listar(usuario.id, usuario.rol === "administrador");
+  const gestiona = usuario.rol === "coordinador" || usuario.rol === "programador";
+  return repositorio.listar(usuario.id, gestiona);
 }
 
 async function cambiarEstado(idTicket, estado) {

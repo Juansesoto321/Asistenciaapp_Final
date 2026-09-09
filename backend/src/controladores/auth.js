@@ -1,75 +1,60 @@
 const servicio = require("../servicios/auth");
+const { traducirCodigos } = require("../middleware/manejadorErrores");
 
-const ESTADOS_HTTP = {
-  cuenta_pendiente: 403,
-  cuenta_inactiva: 403,
-  cuenta_bloqueada: 403,
-  credenciales: 401,
-  validacion: 400,
-};
+const DUPLICADO = { 23505: "El correo o documento ya está registrado" };
 
-function responderError(res, error, mensaje) {
-  const status = ESTADOS_HTTP[error.tipo];
-  if (status) return res.status(status).json({ mensaje: error.message });
-  if (error.code === "23505") return res.status(400).json({ mensaje: "El correo o documento ya está registrado" });
-  console.error(error);
-  return res.status(500).json({ mensaje });
-}
-
-async function login(req, res) {
+async function login(req, res, next) {
   try {
     const datos = await servicio.login(req.body.correo, req.body.contrasena);
     res.json(datos);
   } catch (error) {
-    responderError(res, error, "Error al iniciar sesión");
+    next(error);
   }
 }
 
-async function registro(req, res) {
+async function registro(req, res, next) {
   try {
     const { nombres, apellidos, tipo_documento, documento, correo, telefono, contrasena, rol } = req.body;
     await servicio.registrar({ nombres, apellidos, tipoDocumento: tipo_documento, documento, correo, telefono, contrasena, rol });
-    res.status(201).json({ mensaje: "Solicitud enviada. Un administrador aprobará tu cuenta" });
+    res.status(201).json({ mensaje: "Solicitud enviada. Un coordinador aprobará tu cuenta" });
   } catch (error) {
-    responderError(res, error, "Error al registrar");
+    next(traducirCodigos(error, DUPLICADO));
   }
 }
 
-async function recuperar(req, res) {
+async function recuperar(req, res, next) {
   try {
     await servicio.solicitarRecuperacion(req.body.correo);
     res.json({ mensaje: "Si el correo existe, recibirás un enlace de recuperación" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: "Error al procesar la solicitud" });
+    next(error);
   }
 }
 
-async function restablecer(req, res) {
+async function restablecer(req, res, next) {
   try {
     await servicio.restablecerContrasena(req.body.token, req.body.contrasena);
     res.json({ mensaje: "Contraseña actualizada. Ya puedes iniciar sesión" });
   } catch (error) {
-    responderError(res, error, "Error al restablecer la contraseña");
+    next(error);
   }
 }
 
-async function verPerfil(req, res) {
+async function verPerfil(req, res, next) {
   try {
     res.json(await servicio.obtenerPerfil(req.usuario.id));
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: "Error al obtener el perfil" });
+    next(error);
   }
 }
 
-async function actualizarPerfil(req, res) {
+async function actualizarPerfil(req, res, next) {
   try {
     const { telefono, contrasena_actual, contrasena_nueva } = req.body;
     await servicio.actualizarPerfil(req.usuario.id, { telefono, contrasenaActual: contrasena_actual, contrasenaNueva: contrasena_nueva });
     res.json({ mensaje: "Perfil actualizado" });
   } catch (error) {
-    responderError(res, error, "Error al actualizar el perfil");
+    next(error);
   }
 }
 

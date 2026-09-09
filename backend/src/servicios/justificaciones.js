@@ -2,8 +2,8 @@
  * CU-23 Cargar justificacion (aprendiz, via enlace de 72 horas)
  * CU-24 Validar justificacion (instructor aprueba/rechaza)
  */
-const pool = require("../config/db");
 const repo = require("../repositorios/justificaciones");
+const { enTransaccion } = require("../repositorios/transaccion");
 const { auditar } = require("./auditoria");
 const { enviarCorreo } = require("./correo");
 const { emitirJustificacionesActualizadas, emitirNotificacionNueva } = require("./tiempoReal");
@@ -43,7 +43,6 @@ async function enviarPorToken(token, { tipo, descripcion, nombre_archivo, archiv
   const instr = await repo.buscarInstructorDeAsistencia(r.id_asistencia);
   if (instr) {
     await repo.crearNotificacion(
-      pool,
       instr.id_instructor,
       "justificacion",
       "Nueva justificación por revisar",
@@ -77,42 +76,31 @@ async function validarJustificacion(idJustificacion, usuario, { estado, observac
   if (!["aprobada", "rechazada"].includes(estado)) throw error("Estado inválido", "validacion");
   if (estado === "rechazada" && !observacion?.trim()) throw error("Explica por qué se rechaza la justificación", "validacion");
 
-  const cliente = await pool.connect();
-  let idAsistencia, aprendiz;
-  try {
-    await cliente.query("BEGIN");
+  const { idAsistencia, aprendiz } = await enTransaccion(async (cliente) => {
     const r = await repo.validar(cliente, idJustificacion, {
       estado,
       validadaPor: usuario.id,
       observacion: observacion?.trim() || null,
     });
-    if (!r) {
-      await cliente.query("ROLLBACK");
-      throw error("La justificación no está pendiente de revisión", "validacion");
-    }
-    idAsistencia = r.id_asistencia;
+    if (!r) throw error("La justificación no está pendiente de revisión", "validacion");
 
     if (estado === "aprobada") {
-      aprendiz = await repo.marcarAsistenciaJustificada(cliente, idAsistencia);
-      await repo.registrarCambioAsistencia(cliente, idAsistencia, usuario.id);
+      const idAprendiz = await repo.marcarAsistenciaJustificada(cliente, r.id_asistencia);
+      await repo.registrarCambioAsistencia(cliente, r.id_asistencia, usuario.id);
       await repo.crearNotificacion(
-        cliente, aprendiz, "justificacion", "Justificación aprobada",
-        "Tu inasistencia quedó marcada como justificada."
+        idAprendiz, "justificacion", "Justificación aprobada",
+        "Tu inasistencia quedó marcada como justificada.", cliente
       );
-    } else {
-      aprendiz = await repo.obtenerAprendizDeAsistencia(cliente, idAsistencia);
-      await repo.crearNotificacion(
-        cliente, aprendiz, "justificacion", "Justificación rechazada",
-        `Tu justificación fue rechazada. Motivo: ${observacion.trim()}`
-      );
+      return { idAsistencia: r.id_asistencia, aprendiz: idAprendiz };
     }
-    await cliente.query("COMMIT");
-  } catch (e) {
-    if (!e.tipo) await cliente.query("ROLLBACK");
-    throw e;
-  } finally {
-    cliente.release();
-  }
+
+    const idAprendiz = await repo.obtenerAprendizDeAsistencia(cliente, r.id_asistencia);
+    await repo.crearNotificacion(
+      idAprendiz, "justificacion", "Justificación rechazada",
+      `Tu justificación fue rechazada. Motivo: ${observacion.trim()}`, cliente
+    );
+    return { idAsistencia: r.id_asistencia, aprendiz: idAprendiz };
+  });
 
   emitirNotificacionNueva(aprendiz);
   await auditar(usuario.id, `justificacion_${estado}`, "justificacion", Number(idJustificacion));

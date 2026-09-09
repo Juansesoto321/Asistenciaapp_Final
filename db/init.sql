@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS usuario (
   correo            VARCHAR(150) NOT NULL UNIQUE,
   telefono          VARCHAR(20),
   contrasena_hash   VARCHAR(255) NOT NULL,
-  rol               VARCHAR(20)  NOT NULL CHECK (rol IN ('administrador','programador','instructor','aprendiz')),
+  rol               VARCHAR(20)  NOT NULL CHECK (rol IN ('coordinador','programador','instructor','aprendiz')),
   estado            VARCHAR(20)  NOT NULL DEFAULT 'activo'
                     CHECK (estado IN ('activo','pendiente','inactivo','bloqueado')),
   intentos_fallidos INTEGER      NOT NULL DEFAULT 0,
@@ -95,6 +95,32 @@ CREATE TABLE IF NOT EXISTS dispositivo (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_dispositivo_ambiente_unico
   ON dispositivo (id_ambiente) WHERE id_ambiente IS NOT NULL;
 
+-- ---------- ESTRUCTURA CURRICULAR ----------
+-- Competencia -> Resultados de Aprendizaje (RAP) -> Temáticas.
+-- Un mismo RAP se dicta en varios trimestres con temáticas distintas.
+
+CREATE TABLE IF NOT EXISTS competencia (
+  id_competencia SERIAL PRIMARY KEY,
+  codigo         VARCHAR(30),
+  nombre         VARCHAR(300) NOT NULL UNIQUE,
+  creado_en      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS resultado_aprendizaje (
+  id_rap         SERIAL PRIMARY KEY,
+  id_competencia INTEGER NOT NULL REFERENCES competencia(id_competencia) ON DELETE CASCADE,
+  codigo         VARCHAR(30) NOT NULL UNIQUE,
+  nombre         TEXT NOT NULL,
+  creado_en      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tematica (
+  id_tematica SERIAL PRIMARY KEY,
+  id_rap      INTEGER NOT NULL REFERENCES resultado_aprendizaje(id_rap) ON DELETE CASCADE,
+  nombre      VARCHAR(200) NOT NULL,
+  UNIQUE (id_rap, nombre)
+);
+
 -- ---------- HORARIOS Y SESIONES (CU-08, CU-12) ----------
 
 CREATE TABLE IF NOT EXISTS horario (
@@ -106,6 +132,8 @@ CREATE TABLE IF NOT EXISTS horario (
   dia_semana    INTEGER NOT NULL CHECK (dia_semana BETWEEN 0 AND 6), -- 0=domingo
   hora_inicio   TIME NOT NULL,
   hora_fin      TIME NOT NULL,
+  id_rap        INTEGER REFERENCES resultado_aprendizaje(id_rap),   -- qué se dicta en este bloque
+  id_tematica   INTEGER REFERENCES tematica(id_tematica),
   CHECK (hora_fin > hora_inicio)
 );
 
@@ -234,11 +262,25 @@ CREATE TABLE IF NOT EXISTS configuracion (
   valor VARCHAR(100) NOT NULL
 );
 
+-- Registro de errores del backend: permite saber que fallo, cuando y en que ruta
+CREATE TABLE IF NOT EXISTS log_error (
+  id_log     SERIAL PRIMARY KEY,
+  nivel      VARCHAR(10)  NOT NULL DEFAULT 'error'
+             CHECK (nivel IN ('error','advertencia')),
+  mensaje    TEXT         NOT NULL,
+  metodo     VARCHAR(10),
+  ruta       VARCHAR(255),
+  id_usuario INTEGER      REFERENCES usuario(id_usuario) ON DELETE SET NULL,
+  traza      TEXT,
+  creado_en  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
 -- Índices de consulta frecuente
 CREATE INDEX IF NOT EXISTS idx_asistencia_aprendiz ON asistencia(id_aprendiz);
 CREATE INDEX IF NOT EXISTS idx_asistencia_sesion   ON asistencia(id_sesion);
 CREATE INDEX IF NOT EXISTS idx_sesion_fecha        ON sesion_clase(fecha);
 CREATE INDEX IF NOT EXISTS idx_notificacion_user   ON notificacion(id_usuario, leida);
+CREATE INDEX IF NOT EXISTS idx_log_error_fecha     ON log_error(creado_en DESC);
 
 -- ---------- CONFIGURACIÓN INICIAL ----------
 INSERT INTO configuracion (clave, valor) VALUES

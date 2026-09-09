@@ -4,7 +4,7 @@ const controlador = require("../controladores/usuarios");
 const { autenticar, autorizar } = require("../middleware/autenticar");
 
 const router = express.Router();
-router.use(autenticar, autorizar("administrador"));
+router.use(autenticar, autorizar("coordinador"));
 
 router.get("/", controlador.listar);
 router.post("/", controlador.crear);

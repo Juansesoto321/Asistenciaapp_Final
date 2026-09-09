@@ -46,7 +46,7 @@ async function buscarInstructorDeAsistencia(idAsistencia) {
 }
 
 async function esPropietario(idJustificacion, usuario) {
-  if (usuario.rol === "administrador") return true;
+  if (usuario.rol === "coordinador" || usuario.rol === "programador") return true;
   const r = await pool.query(
     `SELECT 1 FROM justificacion j
      JOIN asistencia a ON a.id_asistencia = j.id_asistencia
@@ -132,7 +132,8 @@ async function registrarCambioAsistencia(cliente, idAsistencia, cambiadoPor) {
   );
 }
 
-async function crearNotificacion(cliente, idUsuario, tipo, titulo, mensaje) {
+/** `cliente` solo se pasa cuando la notificación debe ir dentro de una transacción. */
+async function crearNotificacion(idUsuario, tipo, titulo, mensaje, cliente = pool) {
   await cliente.query(
     "INSERT INTO notificacion (id_usuario, tipo, titulo, mensaje) VALUES ($1,$2,$3,$4)",
     [idUsuario, tipo, titulo, mensaje]
@@ -155,7 +156,16 @@ async function buscarUsuarioParaCorreo(idUsuario) {
   return r.rows[0];
 }
 
+/** Tarea programada: marca como vencidas las que pasaron su plazo. */
+async function vencerExpiradas() {
+  const r = await pool.query(
+    "UPDATE justificacion SET estado = 'vencida' WHERE estado = 'pendiente' AND expira_en < NOW()"
+  );
+  return r.rowCount;
+}
+
 module.exports = {
+  vencerExpiradas,
   obtenerHorasPlazo,
   buscarPorToken,
   enviarPorToken,

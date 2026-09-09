@@ -11,12 +11,14 @@ function inicializar(servidorHttp) {
     socket.on("unirse_sesion", (idSesion) => socket.join(`sesion_${idSesion}`));
     socket.on("salir_sesion", (idSesion) => socket.leave(`sesion_${idSesion}`));
     // Panel de cualquier rol: sala personal (badge de notificaciones) y, para
-    // instructor/administrador, ademas las salas del contador de justificaciones.
+    // quienes gestionan, ademas las salas del contador de justificaciones.
     socket.on("unirse_panel", ({ rol, id }) => {
       socket.join(`usuario_${id}`);
       if (rol === "instructor") socket.join(`instructor_${id}`);
-      else if (rol === "administrador") socket.join("justificaciones_admin");
-      if (rol === "administrador") socket.join("administradores");
+      else if (rol === "coordinador" || rol === "programador") {
+        socket.join("justificaciones_admin");
+        socket.join("coordinadores");
+      }
     });
   });
   return io;
@@ -39,9 +41,9 @@ function emitirNotificacionNueva(idUsuario) {
   if (io && idUsuario) io.to(`usuario_${idUsuario}`).emit("notificaciones:actualizadas");
 }
 
-// Avisa a todos los administradores conectados (para notificaciones sin un solo destinatario, ej. soporte, registro).
+// Avisa a todos los coordinadores conectados (para notificaciones sin un solo destinatario, ej. soporte, registro).
 function emitirNotificacionAdmins() {
-  if (io) io.to("administradores").emit("notificaciones:actualizadas");
+  if (io) io.to("coordinadores").emit("notificaciones:actualizadas");
 }
 
 module.exports = {

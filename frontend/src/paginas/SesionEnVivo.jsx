@@ -271,7 +271,7 @@ export default function SesionEnVivo() {
               Sesión cerrada
             </span>
           )}
-          {rol === "administrador" &&
+          {["coordinador", "programador"].includes(rol) &&
             <button className="boton mini suave" onClick={eliminar} title="Borra la sesión y su asistencia permanentemente">🗑 Eliminar sesión</button>}
         </div>
       </div>
