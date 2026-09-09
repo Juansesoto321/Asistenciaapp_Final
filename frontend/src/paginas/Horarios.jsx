@@ -22,6 +22,22 @@ const aMinutos = (hora) => {
 const comoHora = (minutos) =>
   `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
 
+// ---- Fechas ----
+const soloFecha = (f) => new Date(f.getFullYear(), f.getMonth(), f.getDate());
+const sumarDias = (f, n) => new Date(f.getFullYear(), f.getMonth(), f.getDate() + n);
+const mismoDia = (a, b) => a.toDateString() === b.toDateString();
+/** Lunes de la semana a la que pertenece la fecha */
+const lunesDe = (f) => sumarDias(f, f.getDay() === 0 ? -6 : 1 - f.getDay());
+
+/** Un horario se repite cada semana, pero solo mientras dure su periodo. */
+function ocurreEn(horario, fecha) {
+  if (horario.dia_semana !== fecha.getDay()) return false;
+  const dia = soloFecha(fecha);
+  const inicio = soloFecha(new Date(horario.periodo_inicio));
+  const fin = soloFecha(new Date(horario.periodo_fin));
+  return dia >= inicio && dia <= fin;
+}
+
 export default function Horarios() {
   const { sesion } = useAuth();
   const rol = sesion.usuario.rol;
@@ -45,6 +61,9 @@ export default function Horarios() {
   const [f, setF] = useState(VACIO);
   const [mensaje, setMensaje] = useState(null);
   const [cargando, setCargando] = useState(false);
+
+  const [vista, setVista] = useState("semana"); // "semana" | "mes"
+  const [ancla, setAncla] = useState(() => new Date()); // fecha dentro de la semana/mes visible
 
   useEffect(() => {
     api("/competencias/raps").then(setRaps).catch(() => {});
@@ -87,6 +106,41 @@ export default function Horarios() {
     () => raps.find((r) => String(r.id_rap) === String(f.id_rap))?.tematicas || [],
     [raps, f.id_rap]
   );
+
+  // Fechas reales de la semana visible (lunes a domingo)
+  const diasSemana = useMemo(() => {
+    const lunes = lunesDe(ancla);
+    return Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i));
+  }, [ancla]);
+
+  // Cuadricula del mes visible, completada con los dias vecinos para cerrar semanas
+  const semanasDelMes = useMemo(() => {
+    const primero = new Date(ancla.getFullYear(), ancla.getMonth(), 1);
+    const ultimo = new Date(ancla.getFullYear(), ancla.getMonth() + 1, 0);
+    const semanas = [];
+    for (let d = lunesDe(primero); d <= ultimo || d.getDay() !== 1; d = sumarDias(d, 1)) {
+      if (d.getDay() === 1) semanas.push([]);
+      semanas[semanas.length - 1].push(d);
+      if (semanas.length > 6) break;
+    }
+    return semanas;
+  }, [ancla]);
+
+  const tituloRango = useMemo(() => {
+    if (vista === "mes") {
+      const t = ancla.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+      return t.charAt(0).toUpperCase() + t.slice(1);
+    }
+    const [ini, fin] = [diasSemana[0], diasSemana[6]];
+    const mesIni = ini.toLocaleDateString("es-CO", { month: "short" });
+    const mesFin = fin.toLocaleDateString("es-CO", { month: "short" });
+    return `${ini.getDate()} ${mesIni} – ${fin.getDate()} ${mesFin} ${fin.getFullYear()}`;
+  }, [vista, ancla, diasSemana]);
+
+  const mover = (paso) =>
+    setAncla((a) => (vista === "mes" ? new Date(a.getFullYear(), a.getMonth() + paso, 1) : sumarDias(a, paso * 7)));
+
+  const hoy = new Date();
 
   function abrirNuevo() {
     setF(VACIO);
@@ -184,70 +238,155 @@ export default function Horarios() {
       )}
 
       {!cargando && aplicado && !!horarios.length && (
-        <div className="tarjeta" style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: `60px repeat(${ORDEN_SEMANA.length}, minmax(150px, 1fr))`, minWidth: 900 }}>
-            <div />
-            {ORDEN_SEMANA.map((dia) => (
-              <div key={dia} style={{ textAlign: "center", fontWeight: 700, padding: "6px 0", borderBottom: "1px solid var(--borde)" }}>
-                {DIAS[dia]}
-              </div>
-            ))}
-
-            {/* Eje de horas */}
-            <div style={{ position: "relative", height: horasEje.length * ALTO_HORA }}>
-              {horasEje.map((m, i) => (
-                <div key={m} style={{ position: "absolute", top: i * ALTO_HORA - 7, right: 8, fontSize: 12, color: "var(--tinta-suave)" }}>
-                  {comoHora(m)}
-                </div>
-              ))}
+        <div className="tarjeta">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button className="boton mini suave" onClick={() => mover(-1)} title="Anterior">←</button>
+              <button className="boton mini suave" onClick={() => setAncla(new Date())}>Hoy</button>
+              <button className="boton mini suave" onClick={() => mover(1)} title="Siguiente">→</button>
+              <b style={{ marginLeft: 6 }}>{tituloRango}</b>
             </div>
-
-            {/* Una columna por día */}
-            {ORDEN_SEMANA.map((dia) => {
-              const delDia = horarios.filter((h) => h.dia_semana === dia);
-              return (
-                <div key={dia} style={{ position: "relative", height: horasEje.length * ALTO_HORA, borderLeft: "1px solid var(--borde)" }}>
-                  {horasEje.map((m, i) => (
-                    <div key={m} style={{ position: "absolute", top: i * ALTO_HORA, left: 0, right: 0, borderTop: "1px solid var(--borde)", opacity: 0.5 }} />
-                  ))}
-                  {delDia.map((h) => {
-                    const inicio = aMinutos(h.hora_inicio);
-                    const fin = aMinutos(h.hora_fin);
-                    const top = ((inicio - rango.desde) / 60) * ALTO_HORA;
-                    const alto = Math.max(((fin - inicio) / 60) * ALTO_HORA, 34);
-                    return (
-                      <button
-                        key={h.id_horario}
-                        onClick={() => setDetalle(h)}
-                        title="Ver detalle"
-                        style={{
-                          position: "absolute", top, left: 4, right: 4, height: alto - 3,
-                          background: colorDe(h.id_ficha), color: "#fff", border: 0,
-                          borderRadius: 8, padding: "5px 7px", textAlign: "left",
-                          cursor: "pointer", overflow: "hidden", fontSize: 11.5, lineHeight: 1.25,
-                        }}
-                      >
-                        <div style={{ fontWeight: 700 }}>
-                          {h.hora_inicio.slice(0, 5)}–{h.hora_fin.slice(0, 5)}
-                        </div>
-                        <div>Ficha {h.numero_ficha} · Amb. {h.numero_ambiente}</div>
-                        {h.tematica && <div style={{ opacity: 0.95 }}>{h.tematica}</div>}
-                        {!h.tematica && h.competencia && <div style={{ opacity: 0.95 }}>{h.competencia}</div>}
-                        {!h.competencia && <div style={{ opacity: 0.8, fontStyle: "italic" }}>Sin competencia asignada</div>}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
+            <div style={{ display: "flex", gap: 6 }}>
+              <button className={`boton mini ${vista === "semana" ? "" : "suave"}`} onClick={() => setVista("semana")}>Semana</button>
+              <button className={`boton mini ${vista === "mes" ? "" : "suave"}`} onClick={() => setVista("mes")}>Mes</button>
+            </div>
           </div>
+
+          {vista === "semana" && (
+            <div style={{ overflowX: "auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "60px repeat(7, minmax(150px, 1fr))", minWidth: 900 }}>
+                <div />
+                {diasSemana.map((fecha) => {
+                  const esHoy = mismoDia(fecha, hoy);
+                  return (
+                    <div key={fecha.toISOString()} style={{
+                      textAlign: "center", padding: "6px 0", borderBottom: "1px solid var(--borde)",
+                      background: esHoy ? "var(--azul-suave)" : "transparent", borderRadius: "8px 8px 0 0",
+                    }}>
+                      <div style={{ fontWeight: 700 }}>{DIAS[fecha.getDay()]}</div>
+                      <div style={{ fontSize: 18, fontWeight: esHoy ? 800 : 500, color: esHoy ? "var(--azul)" : "var(--tinta)" }}>
+                        {fecha.getDate()}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--tinta-suave)" }}>
+                        {fecha.toLocaleDateString("es-CO", { month: "short" })}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Eje de horas */}
+                <div style={{ position: "relative", height: horasEje.length * ALTO_HORA }}>
+                  {horasEje.map((m, i) => (
+                    <div key={m} style={{ position: "absolute", top: i * ALTO_HORA - 7, right: 8, fontSize: 12, color: "var(--tinta-suave)" }}>
+                      {comoHora(m)}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Una columna por fecha real */}
+                {diasSemana.map((fecha) => {
+                  const delDia = horarios.filter((h) => ocurreEn(h, fecha));
+                  return (
+                    <div key={fecha.toISOString()} style={{
+                      position: "relative", height: horasEje.length * ALTO_HORA,
+                      borderLeft: "1px solid var(--borde)",
+                      background: mismoDia(fecha, hoy) ? "var(--azul-suave)" : "transparent",
+                    }}>
+                      {horasEje.map((m, i) => (
+                        <div key={m} style={{ position: "absolute", top: i * ALTO_HORA, left: 0, right: 0, borderTop: "1px solid var(--borde)", opacity: 0.5 }} />
+                      ))}
+                      {delDia.map((h) => {
+                        const inicio = aMinutos(h.hora_inicio);
+                        const fin = aMinutos(h.hora_fin);
+                        const top = ((inicio - rango.desde) / 60) * ALTO_HORA;
+                        const alto = Math.max(((fin - inicio) / 60) * ALTO_HORA, 34);
+                        return (
+                          <button
+                            key={h.id_horario}
+                            onClick={() => setDetalle({ ...h, fecha })}
+                            title="Ver detalle"
+                            style={{
+                              position: "absolute", top, left: 4, right: 4, height: alto - 3,
+                              background: colorDe(h.id_ficha), color: "#fff", border: 0,
+                              borderRadius: 8, padding: "5px 7px", textAlign: "left",
+                              cursor: "pointer", overflow: "hidden", fontSize: 11.5, lineHeight: 1.25,
+                            }}
+                          >
+                            <div style={{ fontWeight: 700 }}>
+                              {h.hora_inicio.slice(0, 5)}–{h.hora_fin.slice(0, 5)}
+                            </div>
+                            <div>Ficha {h.numero_ficha} · Amb. {h.numero_ambiente}</div>
+                            {h.tematica && <div style={{ opacity: 0.95 }}>{h.tematica}</div>}
+                            {!h.tematica && h.competencia && <div style={{ opacity: 0.95 }}>{h.competencia}</div>}
+                            {!h.competencia && <div style={{ opacity: 0.8, fontStyle: "italic" }}>Sin competencia asignada</div>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {vista === "mes" && (
+            <div style={{ overflowX: "auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(120px, 1fr))", minWidth: 840 }}>
+                {ORDEN_SEMANA.map((d) => (
+                  <div key={d} style={{ textAlign: "center", fontWeight: 700, padding: "6px 0", borderBottom: "1px solid var(--borde)" }}>
+                    {DIAS[d]}
+                  </div>
+                ))}
+                {semanasDelMes.flat().map((fecha) => {
+                  const delDia = horarios.filter((h) => ocurreEn(h, fecha));
+                  const esDelMes = fecha.getMonth() === ancla.getMonth();
+                  const esHoy = mismoDia(fecha, hoy);
+                  return (
+                    <div key={fecha.toISOString()} style={{
+                      minHeight: 96, borderTop: "1px solid var(--borde)", borderLeft: "1px solid var(--borde)",
+                      padding: 5, opacity: esDelMes ? 1 : 0.4,
+                      background: esHoy ? "var(--azul-suave)" : "transparent",
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: esHoy ? 800 : 600, color: esHoy ? "var(--azul)" : "var(--tinta-suave)", marginBottom: 3 }}>
+                        {fecha.getDate()}
+                      </div>
+                      {delDia.slice(0, 3).map((h) => (
+                        <button
+                          key={h.id_horario}
+                          onClick={() => setDetalle({ ...h, fecha })}
+                          style={{
+                            display: "block", width: "100%", marginBottom: 3, border: 0, borderRadius: 6,
+                            background: colorDe(h.id_ficha), color: "#fff", padding: "3px 5px",
+                            textAlign: "left", cursor: "pointer", fontSize: 10.5, lineHeight: 1.2,
+                          }}
+                        >
+                          <b>{h.hora_inicio.slice(0, 5)}</b> {h.tematica || h.competencia || `Ficha ${h.numero_ficha}`}
+                        </button>
+                      ))}
+                      {delDia.length > 3 && (
+                        <div style={{ fontSize: 10.5, color: "var(--tinta-suave)" }}>+{delDia.length - 3} más</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {detalle && (
         <div className="superposicion" onClick={() => setDetalle(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{DIAS[detalle.dia_semana]} · {detalle.hora_inicio.slice(0, 5)} – {detalle.hora_fin.slice(0, 5)}</h2>
+            <h2>
+              {detalle.fecha
+                ? detalle.fecha.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+                : DIAS[detalle.dia_semana]}
+            </h2>
+            <p style={{ color: "var(--tinta-suave)", marginTop: -6 }}>
+              {detalle.hora_inicio.slice(0, 5)} – {detalle.hora_fin.slice(0, 5)}
+              {detalle.periodo ? ` · Periodo ${detalle.periodo}` : ""}
+            </p>
             <table className="tabla">
               <tbody>
                 <tr><td><b>Ficha</b></td><td>{detalle.numero_ficha} · {detalle.programa}</td></tr>

@@ -81,11 +81,13 @@ async function listarHorarios(usuario, filtros = {}) {
     `SELECT h.*, f.numero_ficha, f.programa, a.numero_ambiente, a.sede_centro,
             u.nombres || ' ' || u.apellidos AS instructor,
             rap.codigo AS codigo_rap, rap.nombre AS resultado_aprendizaje,
-            c.nombre AS competencia, t.nombre AS tematica
+            c.nombre AS competencia, t.nombre AS tematica,
+            p.nombre AS periodo, p.fecha_inicio AS periodo_inicio, p.fecha_fin AS periodo_fin
      FROM horario h
      JOIN ficha f ON f.id_ficha = h.id_ficha
      JOIN ambiente a ON a.id_ambiente = h.id_ambiente
      JOIN usuario u ON u.id_usuario = h.id_instructor
+     JOIN periodo p ON p.id_periodo = h.id_periodo
      LEFT JOIN resultado_aprendizaje rap ON rap.id_rap = h.id_rap
      LEFT JOIN competencia c ON c.id_competencia = rap.id_competencia
      LEFT JOIN tematica t ON t.id_tematica = h.id_tematica
