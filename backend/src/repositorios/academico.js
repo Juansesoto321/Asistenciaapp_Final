@@ -103,6 +103,66 @@ async function eliminarHorario(id) {
   await pool.query("DELETE FROM horario WHERE id_horario = $1", [id]);
 }
 
+// ---------- MATRICULAS (CU-06) ----------
+async function listarMatriculasDeFicha(idFicha) {
+  const resultado = await pool.query(
+    `SELECT m.id_matricula, m.estado, m.fecha_matricula,
+            u.id_usuario, u.nombres, u.apellidos, u.documento, u.correo,
+            (pb.id_plantilla IS NOT NULL) AS tiene_huella
+     FROM matricula m
+     JOIN usuario u ON u.id_usuario = m.id_aprendiz
+     LEFT JOIN plantilla_biometrica pb ON pb.id_aprendiz = u.id_usuario
+     WHERE m.id_ficha = $1 ORDER BY u.apellidos`,
+    [idFicha]
+  );
+  return resultado.rows;
+}
+
+async function matricularAprendiz(idAprendiz, idFicha) {
+  await pool.query("INSERT INTO matricula (id_aprendiz, id_ficha) VALUES ($1,$2)", [idAprendiz, idFicha]);
+}
+
+async function cambiarEstadoMatricula(id, estado) {
+  await pool.query("UPDATE matricula SET estado = $1 WHERE id_matricula = $2", [estado, id]);
+}
+
+// ---------- AMBIENTES Y DISPOSITIVOS (CU-07, CU-09) ----------
+async function listarAmbientes() {
+  const resultado = await pool.query(
+    `SELECT a.*, d.id_dispositivo, d.serial, d.modelo, d.estado AS estado_dispositivo, d.ultimo_heartbeat
+     FROM ambiente a LEFT JOIN dispositivo d ON d.id_ambiente = a.id_ambiente
+     ORDER BY a.numero_ambiente`
+  );
+  return resultado.rows;
+}
+
+async function crearAmbiente({ numero_ambiente, sede_centro, id_periodo }) {
+  const resultado = await pool.query(
+    "INSERT INTO ambiente (numero_ambiente, sede_centro, id_periodo) VALUES ($1,$2,$3) RETURNING *",
+    [numero_ambiente, sede_centro, id_periodo || null]
+  );
+  return resultado.rows[0];
+}
+
+async function crearDispositivo({ idAmbiente, serial, modelo, claveApi }) {
+  const resultado = await pool.query(
+    `INSERT INTO dispositivo (serial, modelo, id_ambiente, clave_api, estado)
+     VALUES ($1,$2,$3,$4,'no_verificado') RETURNING id_dispositivo, serial, modelo, estado`,
+    [serial, modelo || "ZKTeco SenseFace 2A (simulado)", idAmbiente, claveApi]
+  );
+  return resultado.rows[0];
+}
+
+async function listarDispositivos() {
+  const resultado = await pool.query(
+    `SELECT d.id_dispositivo, d.serial, d.modelo, d.estado, d.ultimo_heartbeat,
+            a.numero_ambiente, a.sede_centro
+     FROM dispositivo d LEFT JOIN ambiente a ON a.id_ambiente = d.id_ambiente
+     ORDER BY d.serial`
+  );
+  return resultado.rows;
+}
+
 module.exports = {
   listarPeriodos,
   listarInstructores,
@@ -113,4 +173,11 @@ module.exports = {
   buscarConflictoHorario,
   crearHorario,
   eliminarHorario,
+  listarMatriculasDeFicha,
+  matricularAprendiz,
+  cambiarEstadoMatricula,
+  listarAmbientes,
+  crearAmbiente,
+  crearDispositivo,
+  listarDispositivos,
 };
