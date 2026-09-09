@@ -20,6 +20,20 @@ Plataforma web que automatiza el registro de asistencia de aprendices mediante l
                                └──────────────┘
 ```
 
+### Backend en capas
+
+La gestión académica sigue este flujo:
+
+`rutas -> controladores -> servicios -> repositorios -> PostgreSQL`
+
+- `rutas/academico.js`: define URLs, autenticación y autorización.
+- `controladores/academico.js`: traduce peticiones y respuestas HTTP.
+- `servicios/academico.js`: contiene reglas de negocio y auditoría.
+- `repositorios/academico.js`: concentra las consultas SQL académicas.
+
+Matrículas, ambientes y dispositivos conservan temporalmente la implementación
+anterior para migrarlos de forma incremental sin romper la aplicación.
+
 | Componente | Tecnología | Carpeta |
 |---|---|---|
 | Base de datos | PostgreSQL 16 (19 tablas) | `db/` |
@@ -71,6 +85,23 @@ Para producción define variables reales en un archivo `.env` junto al compose:
 correos) y las credenciales SMTP (`CORREO_HOST`, `CORREO_USUARIO`, `CORREO_CONTRASENA`).
 Sin SMTP, los correos se imprimen en la consola del backend (útil para la demo).
 
+### Adjuntos de justificaciones
+
+Los soportes se almacenan en la base de datos, en `justificacion.archivo_datos`, como
+data URI en base64; no se crea una carpeta de imágenes en el backend. Se consultan
+mediante `GET /api/justificaciones/:id/archivo` (requiere rol instructor o administrador).
+Se aceptan `.jpg`, `.jpeg`, `.png`, `.webp` y `.pdf`, con un límite de 5 MB en la interfaz.
+El límite HTTP del backend es de 10 MB para permitir la codificación base64.
+
+### Actualizar una instalación existente
+
+Las bases nuevas toman el rol `programador` desde `db/init.sql`. En una base ya creada,
+ejecuta una vez `db/migracion_programador.sql`. Este rol gestiona fichas, periodos y
+horarios, pero no usuarios, sesiones de clase ni biometría.
+
+Las fichas pasan automáticamente a `finalizada` cuando termina su `fecha_fin`; sus
+matrículas activas también se marcan como `finalizada`.
+
 ## Opción C · Nube gratuita (Render / Railway)
 
 1. Sube el repositorio a GitHub.
@@ -85,6 +116,7 @@ Sin SMTP, los correos se imprimen en la consola del backend (útil para la demo)
 | Rol | Correo | Contraseña |
 |---|---|---|
 | Administrador | admin@sena.edu.co | Admin123* |
+| Programador | programador@sena.edu.co | Programador123* |
 | Instructor | cristian.buitrago@sena.edu.co | Instructor123* |
 | Aprendiz | camilap.m1230@gmail.com | Aprendiz123* |
 | Aprendiz | becerravillalobos08@gmail.com | Aprendiz123* |

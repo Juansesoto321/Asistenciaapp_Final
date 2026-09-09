@@ -7,66 +7,20 @@ const crypto = require("crypto");
 const pool = require("../config/db");
 const { auditar } = require("../servicios/auditoria");
 const { autenticar, autorizar } = require("../middleware/autenticar");
+const controlador = require("../controladores/academico");
 
 const router = express.Router();
 router.use(autenticar);
 
 // ---------- PERIODOS ----------
-router.get("/periodos", async (_req, res) => {
-  const r = await pool.query("SELECT * FROM periodo ORDER BY fecha_inicio DESC");
-  res.json(r.rows);
-});
-router.post("/periodos", autorizar("administrador"), async (req, res) => {
-  try {
-    const { nombre, fecha_inicio, fecha_fin } = req.body;
-    const r = await pool.query(
-      "INSERT INTO periodo (nombre, fecha_inicio, fecha_fin) VALUES ($1,$2,$3) RETURNING *",
-      [nombre, fecha_inicio, fecha_fin]
-    );
-    res.status(201).json(r.rows[0]);
-  } catch (e) {
-    if (e.code === "23514") return res.status(400).json({ mensaje: "La fecha fin debe ser posterior a la fecha inicio" });
-    console.error(e);
-    res.status(500).json({ mensaje: "Error al crear el periodo" });
-  }
-});
+router.get("/periodos", controlador.listarPeriodos);
+router.get("/instructores", autorizar("administrador", "programador"), controlador.listarInstructores);
+router.post("/periodos", autorizar("administrador", "programador"), controlador.crearPeriodo);
 
 // ---------- FICHAS (CU-05) ----------
-router.get("/fichas", async (req, res) => {
-  // Regla CU-17: el instructor solo ve sus fichas
-  const filtroInstructor = req.usuario.rol === "instructor" ? "WHERE f.id_instructor = $1" : "";
-  const valores = req.usuario.rol === "instructor" ? [req.usuario.id] : [];
-  const r = await pool.query(
-    `SELECT f.*, p.nombre AS periodo,
-            u.nombres || ' ' || u.apellidos AS instructor,
-            (SELECT COUNT(*) FROM matricula m WHERE m.id_ficha = f.id_ficha AND m.estado = 'activa') AS total_aprendices
-     FROM ficha f
-     JOIN periodo p ON p.id_periodo = f.id_periodo
-     JOIN usuario u ON u.id_usuario = f.id_instructor
-     ${filtroInstructor}
-     ORDER BY f.id_ficha DESC`,
-    valores
-  );
-  res.json(r.rows);
-});
+router.get("/fichas", controlador.listarFichas);
 
-router.post("/fichas", autorizar("administrador"), async (req, res) => {
-  try {
-    const { numero_ficha, programa, jornada, fecha_inicio, fecha_fin, id_periodo, id_instructor } = req.body;
-    const r = await pool.query(
-      `INSERT INTO ficha (numero_ficha, programa, jornada, fecha_inicio, fecha_fin, id_periodo, id_instructor)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [numero_ficha, programa, jornada, fecha_inicio, fecha_fin, id_periodo, id_instructor]
-    );
-    await auditar(req.usuario.id, "crear_ficha", "ficha", r.rows[0].id_ficha);
-    res.status(201).json(r.rows[0]);
-  } catch (e) {
-    if (e.code === "23505") return res.status(400).json({ mensaje: "El número de ficha ya existe" });
-    if (e.code === "23514") return res.status(400).json({ mensaje: "La fecha fin debe ser posterior a la fecha inicio" });
-    console.error(e);
-    res.status(500).json({ mensaje: "Error al crear la ficha" });
-  }
-});
+router.post("/fichas", autorizar("administrador", "programador"), controlador.crearFicha);
 
 // ---------- MATRICULAS (CU-06) ----------
 router.get("/fichas/:id/matriculas", async (req, res) => {
@@ -178,67 +132,10 @@ router.get("/dispositivos", autorizar("administrador"), async (_req, res) => {
 });
 
 // ---------- HORARIOS (CU-08) ----------
-router.get("/horarios", async (req, res) => {
-  const filtro = req.usuario.rol === "instructor" ? "WHERE h.id_instructor = $1" : "";
-  const valores = req.usuario.rol === "instructor" ? [req.usuario.id] : [];
-  const r = await pool.query(
-    `SELECT h.*, f.numero_ficha, f.programa, a.numero_ambiente,
-            u.nombres || ' ' || u.apellidos AS instructor
-     FROM horario h
-     JOIN ficha f ON f.id_ficha = h.id_ficha
-     JOIN ambiente a ON a.id_ambiente = h.id_ambiente
-     JOIN usuario u ON u.id_usuario = h.id_instructor
-     ${filtro}
-     ORDER BY h.dia_semana, h.hora_inicio`,
-    valores
-  );
-  res.json(r.rows);
-});
+router.get("/horarios", controlador.listarHorarios);
 
-router.post("/horarios", autorizar("administrador"), async (req, res) => {
-  try {
-    const { id_ficha, id_ambiente, id_instructor, id_periodo, dia_semana, hora_inicio, hora_fin } = req.body;
-    // Regla CU-08: sin conflictos de instructor ni de ambiente
-    const conflicto = await pool.query(
-      `SELECT h.id_horario, f.numero_ficha,
-              CASE WHEN h.id_instructor = $1 THEN 'instructor' ELSE 'ambiente' END AS tipo
-       FROM horario h JOIN ficha f ON f.id_ficha = h.id_ficha
-       WHERE h.dia_semana = $3
-         AND (h.id_instructor = $1 OR h.id_ambiente = $2)
-         AND (h.hora_inicio, h.hora_fin) OVERLAPS ($4::time, $5::time)
-       LIMIT 1`,
-      [id_instructor, id_ambiente, dia_semana, hora_inicio, hora_fin]
-    );
-    if (conflicto.rows[0]) {
-      const c = conflicto.rows[0];
-      return res.status(400).json({
-        mensaje: `Conflicto de ${c.tipo}: se cruza con la ficha ${c.numero_ficha} en ese horario`,
-      });
-    }
-    const r = await pool.query(
-      `INSERT INTO horario (id_ficha, id_ambiente, id_instructor, id_periodo, dia_semana, hora_inicio, hora_fin)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [id_ficha, id_ambiente, id_instructor, id_periodo, dia_semana, hora_inicio, hora_fin]
-    );
-    await auditar(req.usuario.id, "crear_horario", "horario", r.rows[0].id_horario);
-    res.status(201).json(r.rows[0]);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ mensaje: "Error al crear el horario" });
-  }
-});
+router.post("/horarios", autorizar("administrador", "programador"), controlador.crearHorario);
 
-router.delete("/horarios/:id", autorizar("administrador"), async (req, res) => {
-  try {
-    await pool.query("DELETE FROM horario WHERE id_horario = $1", [req.params.id]);
-    await auditar(req.usuario.id, "eliminar_horario", "horario", Number(req.params.id));
-    res.json({ mensaje: "Horario eliminado" });
-  } catch (e) {
-    if (e.code === "23503")
-      return res.status(400).json({ mensaje: "No se puede eliminar: ya existen sesiones de clase registradas para este horario" });
-    console.error(e);
-    res.status(500).json({ mensaje: "Error al eliminar el horario" });
-  }
-});
+router.delete("/horarios/:id", autorizar("administrador", "programador"), controlador.eliminarHorario);
 
 module.exports = router;

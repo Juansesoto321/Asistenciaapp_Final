@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, guardarSesion } from "../servicios/api";
+import { api } from "../servicios/api";
+import { useAuth } from "../contexto/AuthContext.jsx";
 import IconoHuella from "../componentes/IconoHuella.jsx";
 
 export default function IniciarSesion() {
   const navegar = useNavigate();
+  const { iniciarSesion } = useAuth();
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [recuperando, setRecuperando] = useState(false);
@@ -19,7 +21,7 @@ export default function IniciarSesion() {
         setMensaje({ tipo: "exito", texto: r.mensaje });
       } else {
         const r = await api("/auth/login", { method: "POST", body: { correo, contrasena } });
-        guardarSesion(r);
+        iniciarSesion(r);
         navegar("/panel");
       }
     } catch (e) {

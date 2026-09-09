@@ -61,6 +61,15 @@ setInterval(async () => {
       `UPDATE dispositivo SET estado = 'fuera_de_linea'
        WHERE estado = 'en_linea' AND ultimo_heartbeat < NOW() - INTERVAL '3 minutes'`
     );
+    await pool.query(
+      `WITH fichas_finalizadas AS (
+         UPDATE ficha SET estado = 'finalizada'
+         WHERE estado = 'activa' AND fecha_fin < CURRENT_DATE
+         RETURNING id_ficha
+       )
+       UPDATE matricula SET estado = 'finalizada'
+       WHERE estado = 'activa' AND id_ficha IN (SELECT id_ficha FROM fichas_finalizadas)`
+    );
   } catch (e) {
     console.error("Error en tareas programadas:", e.message);
   }

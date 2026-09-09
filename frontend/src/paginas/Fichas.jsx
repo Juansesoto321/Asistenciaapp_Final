@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, obtenerSesion } from "../servicios/api";
+import { api } from "../servicios/api";
+import { useAuth } from "../contexto/AuthContext.jsx";
 
 const VACIA = { numero_ficha: "", programa: "", jornada: "mañana", fecha_inicio: "", fecha_fin: "", id_periodo: "", id_instructor: "" };
 
 export default function Fichas() {
-  const rol = obtenerSesion().usuario.rol;
+  const { sesion } = useAuth();
+  const rol = sesion.usuario.rol;
   const [fichas, setFichas] = useState([]);
   const [periodos, setPeriodos] = useState([]);
   const [instructores, setInstructores] = useState([]);
@@ -16,9 +18,9 @@ export default function Fichas() {
   const cargar = () => api("/fichas").then(setFichas).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
   useEffect(() => {
     cargar();
-    if (rol === "administrador") {
+    if (["administrador", "programador"].includes(rol)) {
       api("/periodos").then(setPeriodos);
-      api("/usuarios?rol=instructor&estado=activo").then(setInstructores);
+      api("/instructores").then(setInstructores);
     }
   }, []);
 
@@ -36,7 +38,7 @@ export default function Fichas() {
       <div className="cabecera-pagina">
         <div><h1>{rol === "instructor" ? "Mis fichas" : "Fichas de formación"}</h1>
         <p>Programas, matrículas y enrolamiento de huella por ficha.</p></div>
-        {rol === "administrador" && <button className="boton" onClick={() => setModal(true)}>+ Nueva ficha</button>}
+        {["administrador", "programador"].includes(rol) && <button className="boton" onClick={() => setModal(true)}>+ Nueva ficha</button>}
       </div>
       {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
 

@@ -13,6 +13,7 @@ const router = express.Router();
 
 const TIPOS_VALIDOS = ["cita_medica", "incapacidad_medica", "calamidad_domestica", "diligencia_legal", "duelo", "otro"];
 const TIPOS_SIN_FOTO_OBLIGATORIA = ["calamidad_domestica", "duelo"];
+const FORMATOS_ADJUNTO = /^data:(image\/(jpeg|png|webp)|application\/pdf);base64,/i;
 
 // Texto legible del plazo configurado (ej. "5 días" o "18 horas")
 async function textoPlazo() {
@@ -49,9 +50,9 @@ router.post("/token/:token", async (req, res) => {
     if (!descripcion?.trim()) return res.status(400).json({ mensaje: "Describe el motivo de tu inasistencia" });
     const fotoObligatoria = !TIPOS_SIN_FOTO_OBLIGATORIA.includes(tipo);
     if (fotoObligatoria && !archivo_datos)
-      return res.status(400).json({ mensaje: "Adjunta una foto del soporte para este tipo de justificación" });
-    if (archivo_datos && !/^data:image\//.test(archivo_datos))
-      return res.status(400).json({ mensaje: "El soporte debe ser una foto (imagen)" });
+      return res.status(400).json({ mensaje: "Adjunta un soporte para este tipo de justificación" });
+    if (archivo_datos && !FORMATOS_ADJUNTO.test(archivo_datos))
+      return res.status(400).json({ mensaje: "El soporte debe ser JPG, PNG, WEBP o PDF" });
     const r = await pool.query(
       `UPDATE justificacion SET tipo = $1, descripcion = $2, nombre_archivo = $3, archivo_datos = $4,
         estado = 'enviada', enviada_en = NOW()

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { api, obtenerSesion } from "../servicios/api";
+import { api } from "../servicios/api";
+import { useAuth } from "../contexto/AuthContext.jsx";
 
 export default function Soporte() {
-  const rol = obtenerSesion().usuario.rol;
+  const { sesion } = useAuth();
+  const rol = sesion.usuario.rol;
   const [tickets, setTickets] = useState([]);
   const [f, setF] = useState({ tipo: "huella", descripcion: "" });
   const [mensaje, setMensaje] = useState(null);

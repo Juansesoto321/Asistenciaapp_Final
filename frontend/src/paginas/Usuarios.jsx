@@ -90,6 +90,7 @@ export default function Usuarios() {
           <option value="">Todos los roles</option>
           <option value="administrador">Administrador</option>
           <option value="instructor">Instructor</option>
+          <option value="programador">Programador</option>
           <option value="aprendiz">Aprendiz</option>
         </select>
         <select style={{ maxWidth: 190 }} value={filtro.estado} onChange={(e) => setFiltro({ ...filtro, estado: e.target.value })}>
@@ -139,6 +140,7 @@ export default function Usuarios() {
             <select value={f.rol} onChange={(e) => setF({ ...f, rol: e.target.value })}>
               <option value="aprendiz">Aprendiz</option>
               <option value="instructor">Instructor</option>
+              <option value="programador">Programador</option>
               <option value="administrador">Administrador</option>
             </select>
             <div className="acciones-modal">

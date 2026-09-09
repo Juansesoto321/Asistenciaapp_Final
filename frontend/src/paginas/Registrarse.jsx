@@ -47,6 +47,7 @@ export default function Registrarse() {
             <select value={f.rol} onChange={c("rol")}>
               <option value="aprendiz">Aprendiz</option>
               <option value="instructor">Instructor</option>
+              <option value="programador">Programador</option>
             </select>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { obtenerSesion } from "./servicios/api";
+import { useAuth } from "./contexto/AuthContext.jsx";
 import Diseno from "./componentes/Diseno.jsx";
 import IniciarSesion from "./paginas/IniciarSesion.jsx";
 import Registrarse from "./paginas/Registrarse.jsx";
@@ -22,7 +22,7 @@ import Notificaciones from "./paginas/Notificaciones.jsx";
 import Perfil from "./paginas/Perfil.jsx";
 
 function Protegida({ children, roles }) {
-  const sesion = obtenerSesion();
+  const { sesion } = useAuth();
   if (!sesion) return <Navigate to="/" replace />;
   if (roles && !roles.includes(sesion.usuario.rol)) return <Navigate to="/panel" replace />;
   return <Diseno>{children}</Diseno>;
@@ -38,10 +38,10 @@ export default function App() {
 
       <Route path="/panel" element={<Protegida><Panel /></Protegida>} />
       <Route path="/usuarios" element={<Protegida roles={["administrador"]}><Usuarios /></Protegida>} />
-      <Route path="/fichas" element={<Protegida roles={["administrador","instructor"]}><Fichas /></Protegida>} />
-      <Route path="/fichas/:id" element={<Protegida roles={["administrador","instructor"]}><DetalleFicha /></Protegida>} />
+      <Route path="/fichas" element={<Protegida roles={["administrador","programador","instructor"]}><Fichas /></Protegida>} />
+      <Route path="/fichas/:id" element={<Protegida roles={["administrador","programador","instructor"]}><DetalleFicha /></Protegida>} />
       <Route path="/ambientes" element={<Protegida roles={["administrador"]}><Ambientes /></Protegida>} />
-      <Route path="/horarios" element={<Protegida roles={["administrador","instructor"]}><Horarios /></Protegida>} />
+      <Route path="/horarios" element={<Protegida roles={["administrador","programador","instructor"]}><Horarios /></Protegida>} />
       <Route path="/sesiones" element={<Protegida roles={["instructor","administrador"]}><Sesiones /></Protegida>} />
       <Route path="/sesiones/:id" element={<Protegida roles={["instructor","administrador"]}><SesionEnVivo /></Protegida>} />
       <Route path="/justificaciones" element={<Protegida roles={["instructor","administrador"]}><Justificaciones /></Protegida>} />

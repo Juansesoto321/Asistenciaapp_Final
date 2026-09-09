@@ -36,7 +36,7 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { nombres, apellidos, tipo_documento, documento, correo, telefono, rol } = req.body;
-    if (!["administrador", "instructor", "aprendiz"].includes(rol))
+    if (!["administrador", "programador", "instructor", "aprendiz"].includes(rol))
       return res.status(400).json({ mensaje: "Rol inválido" });
     const temporal = `Sena${crypto.randomBytes(3).toString("hex")}*1`;
     const hash = await bcrypt.hash(temporal, 10);

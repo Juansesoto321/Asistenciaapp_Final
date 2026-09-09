@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { api, obtenerSesion } from "../servicios/api";
+import { api } from "../servicios/api";
+import { useAuth } from "../contexto/AuthContext.jsx";
 import IconoHuella from "../componentes/IconoHuella.jsx";
 
 export default function DetalleFicha() {
   const { id } = useParams();
-  const rol = obtenerSesion().usuario.rol;
+  const { sesion } = useAuth();
+  const rol = sesion.usuario.rol;
   const [matriculas, setMatriculas] = useState([]);
   const [disponibles, setDisponibles] = useState([]);
   const [seleccion, setSeleccion] = useState([]);

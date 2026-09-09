@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { io } from "socket.io-client";
-import { api, obtenerSesion } from "../servicios/api";
+import { api } from "../servicios/api";
+import { useAuth } from "../contexto/AuthContext.jsx";
 import CalendarioPanel, { claveFecha } from "../componentes/CalendarioPanel";
 
 const ETIQUETA_ESTADO = { presente: "P", tardanza: "T", ausente: "A", justificada: "J" };
@@ -15,9 +16,10 @@ function primerYUltimoDia(mes) {
 }
 
 export default function Panel() {
-  const sesion = obtenerSesion();
+  const { sesion } = useAuth();
   const rol = sesion.usuario.rol;
   const esAprendiz = rol === "aprendiz";
+  const esGestorAcademico = rol === "programador";
 
   const [datos, setDatos] = useState(null);       // /reportes/estadisticas (admin/instructor)
   const [historial, setHistorial] = useState(null); // /reportes/mi-historial (aprendiz)
@@ -29,23 +31,23 @@ export default function Panel() {
 
   useEffect(() => {
     if (esAprendiz) api("/reportes/mi-historial").then(setHistorial).catch(() => {});
-    else api("/reportes/estadisticas").then(setDatos).catch(() => {});
-  }, []);
+    else if (!esGestorAcademico) api("/reportes/estadisticas").then(setDatos).catch(() => {});
+  }, [esAprendiz, esGestorAcademico]);
 
   // Contador de justificaciones pendientes, en tiempo real (instructor/administrador)
   useEffect(() => {
-    if (esAprendiz) return;
+    if (esAprendiz || esGestorAcademico) return;
     const cargarPendientes = () => api("/justificaciones/pendientes/contador").then((r) => setPendientes(r.pendientes)).catch(() => {});
     cargarPendientes();
     const socket = io();
     socket.emit("unirse_panel", { rol, id: sesion.usuario.id });
     socket.on("justificaciones:actualizadas", cargarPendientes);
     return () => socket.disconnect();
-  }, [esAprendiz]);
+  }, [esAprendiz, esGestorAcademico]);
 
   // Para instructor/administrador: trae los registros del mes visible cada vez que cambia.
   useEffect(() => {
-    if (esAprendiz) return;
+    if (esAprendiz || esGestorAcademico) return;
     const { fecha_inicio, fecha_fin } = primerYUltimoDia(mes);
     setCargandoMes(true);
     api(`/reportes/busqueda?fecha_inicio=${fecha_inicio}&fecha_fin=${fecha_fin}`)
@@ -100,7 +102,7 @@ export default function Panel() {
           <h1>Hola, {sesion.usuario.nombres} 👋</h1>
           <p>{new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
         </div>
-        {!esAprendiz && <Link to="/sesiones" className="boton">🕒 Ir a sesiones de hoy</Link>}
+        {!esAprendiz && !esGestorAcademico && <Link to="/sesiones" className="boton">🕒 Ir a sesiones de hoy</Link>}
       </div>
 
       {!esAprendiz && pendientes > 0 && (
@@ -180,6 +182,10 @@ export default function Panel() {
             <Link className="boton suave" to="/sesiones">🕒 Iniciar clase de hoy</Link>
             <Link className="boton suave" to="/justificaciones">📄 Revisar justificaciones</Link>
             <Link className="boton suave" to="/reportes">🔎 Reportes de mis fichas</Link>
+          </>)}
+          {rol === "programador" && (<>
+            <Link className="boton suave" to="/fichas">📚 Gestionar fichas</Link>
+            <Link className="boton suave" to="/horarios">🗓️ Organizar horarios</Link>
           </>)}
           {rol === "aprendiz" && (<>
             <Link className="boton suave" to="/mi-asistencia">🗒️ Ver mi historial completo</Link>

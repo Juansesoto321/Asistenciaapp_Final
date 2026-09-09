@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, obtenerSesion } from "../servicios/api";
+import { api } from "../servicios/api";
+import { useAuth } from "../contexto/AuthContext.jsx";
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 // Orden de semana laboral (lunes a domingo) para las pestañas, aunque dia_semana en BD sea 0=domingo
@@ -7,7 +8,8 @@ const ORDEN_SEMANA = [1, 2, 3, 4, 5, 6, 0];
 const VACIO = { id_ficha: "", id_ambiente: "", id_instructor: "", id_periodo: "", dia_semana: "1", hora_inicio: "07:00", hora_fin: "13:00" };
 
 export default function Horarios() {
-  const rol = obtenerSesion().usuario.rol;
+  const { sesion } = useAuth();
+  const rol = sesion.usuario.rol;
   const [horarios, setHorarios] = useState([]);
   const [fichas, setFichas] = useState([]);
   const [ambientes, setAmbientes] = useState([]);
@@ -21,10 +23,10 @@ export default function Horarios() {
   const cargar = () => api("/horarios").then(setHorarios).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
   useEffect(() => {
     cargar();
-    if (rol === "administrador") {
+    if (["administrador", "programador"].includes(rol)) {
       api("/fichas").then(setFichas);
       api("/ambientes").then(setAmbientes);
-      api("/usuarios?rol=instructor&estado=activo").then(setInstructores);
+      api("/instructores").then(setInstructores);
       api("/periodos").then(setPeriodos);
     }
   }, []);
@@ -54,7 +56,7 @@ export default function Horarios() {
       <div className="cabecera-pagina">
         <div><h1>{rol === "instructor" ? "Mis horarios" : "Horarios de clase"}</h1>
         <p>El sistema valida que no haya cruces de instructor ni de ambiente.</p></div>
-        {rol === "administrador" && <button className="boton" onClick={() => setModal(true)}>+ Nuevo horario</button>}
+        {["administrador", "programador"].includes(rol) && <button className="boton" onClick={() => setModal(true)}>+ Nuevo horario</button>}
       </div>
       {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
 
@@ -71,7 +73,7 @@ export default function Horarios() {
       </div>
 
       <table className="tabla">
-        <thead><tr><th>Hora</th><th>Ficha</th><th>Programa</th><th>Ambiente</th><th>Instructor</th>{rol === "administrador" && <th></th>}</tr></thead>
+        <thead><tr><th>Hora</th><th>Ficha</th><th>Programa</th><th>Ambiente</th><th>Instructor</th>{["administrador", "programador"].includes(rol) && <th></th>}</tr></thead>
         <tbody>
           {delDia.map((h) => (
             <tr key={h.id_horario}>
@@ -80,7 +82,7 @@ export default function Horarios() {
               <td>{h.programa}</td>
               <td>{h.numero_ambiente}</td>
               <td>{h.instructor}</td>
-              {rol === "administrador" && <td><button className="boton mini peligro" onClick={() => eliminar(h.id_horario)}>Eliminar</button></td>}
+              {["administrador", "programador"].includes(rol) && <td><button className="boton mini peligro" onClick={() => eliminar(h.id_horario)}>Eliminar</button></td>}
             </tr>
           ))}
           {!delDia.length && <tr><td colSpan={6}><div className="vacio">No hay clases programadas el {DIAS[diaActivo].toLowerCase()}.</div></td></tr>}

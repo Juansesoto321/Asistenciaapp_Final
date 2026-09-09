@@ -28,7 +28,8 @@ export default function JustificarPublico() {
   function seleccionarArchivo(e) {
     const f = e.target.files[0];
     if (!f) return;
-    if (!f.type.startsWith("image/")) return setError("El soporte debe ser una foto (imagen)");
+    if (![/^image\/(jpeg|png|webp)$/, "application/pdf"].some((tipo) => tipo instanceof RegExp ? tipo.test(f.type) : tipo === f.type))
+      return setError("El soporte debe ser JPG, PNG, WEBP o PDF");
     if (f.size > 5 * 1024 * 1024) return setError("El archivo no puede superar 5 MB");
     setError(null);
     const lector = new FileReader();
@@ -78,8 +79,8 @@ export default function JustificarPublico() {
             <textarea rows={4} value={descripcion} onChange={(e) => setDescripcion(e.target.value)}
                       placeholder="Ej.: cita médica en la EPS, adjunto la constancia…"
                       style={{ background: "rgba(255,255,255,.09)", borderColor: "rgba(255,255,255,.18)", color: "#fff" }} />
-            <label>Foto del soporte {fotoObligatoria ? "(obligatoria, máx. 5 MB)" : "(opcional, máx. 5 MB)"}</label>
-            <input type="file" onChange={seleccionarArchivo} accept="image/*" capture="environment" />
+            <label>Soporte {fotoObligatoria ? "(obligatorio, máx. 5 MB)" : "(opcional, máx. 5 MB)"}</label>
+            <input type="file" onChange={seleccionarArchivo} accept=".jpg,.jpeg,.png,.webp,.pdf" />
             {archivo && <p style={{ fontSize: 13, marginTop: 6 }}>📎 {archivo.nombre}</p>}
             <button className="boton ancho" disabled={!puedeEnviar} onClick={enviar}>Enviar justificación</button>
           </>)}

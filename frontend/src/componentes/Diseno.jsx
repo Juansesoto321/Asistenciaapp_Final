@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { obtenerSesion, cerrarSesion } from "../servicios/api";
+import { useAuth } from "../contexto/AuthContext.jsx";
 import IconoHuella from "./IconoHuella.jsx";
 import IconoSoporte from "./IconoSoporte.jsx";
 
@@ -29,6 +29,14 @@ const MENUS = {
     ["/notificaciones", "🔔", "Notificaciones"],
     ["/soporte", SOPORTE, "Soporte"],
   ],
+  programador: [
+    ["/panel", "📊", "Panel"],
+    ["/fichas", "📚", "Fichas"],
+    ["/horarios", "🗓️", "Horarios"],
+    ["/notificaciones", "🔔", "Notificaciones"],
+    ["/perfil", "👤", "Mi perfil"],
+    ["/soporte", SOPORTE, "Soporte"],
+  ],
   aprendiz: [
     ["/panel", "📊", "Panel"],
     ["/mi-asistencia", "🗒️", "Mi asistencia"],
@@ -39,7 +47,7 @@ const MENUS = {
 };
 
 export default function Diseno({ children }) {
-  const sesion = obtenerSesion();
+  const { sesion, cerrarSesion } = useAuth();
   const navegar = useNavigate();
   const menu = MENUS[sesion.usuario.rol] || [];
   return (

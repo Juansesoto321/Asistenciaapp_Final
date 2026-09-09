@@ -12,15 +12,25 @@ async function main() {
   console.log("Creando esquema...");
   const sql = fs.readFileSync(path.join(__dirname, "../../../db/init.sql"), "utf8");
   await pool.query(sql);
+  const migracionProgramador = fs.readFileSync(path.join(__dirname, "../../../db/migracion_programador.sql"), "utf8");
+  await pool.query(migracionProgramador);
 
   const hayUsuarios = await pool.query("SELECT 1 FROM usuario LIMIT 1");
   if (hayUsuarios.rows.length) {
-    console.log("Ya existen datos. No se vuelve a sembrar.");
+    const hashProgramador = await bcrypt.hash("Programador123*", 10);
+    await pool.query(
+      `INSERT INTO usuario (nombres, apellidos, documento, correo, contrasena_hash, rol)
+       VALUES ('Programador','Académico','1000000003','programador@sena.edu.co',$1,'programador')
+       ON CONFLICT (correo) DO NOTHING`,
+      [hashProgramador]
+    );
+    console.log("Ya existen datos. Se garantizó la cuenta de programador.");
     return pool.end();
   }
 
   console.log("Sembrando datos de demostración...");
   const hAdmin = await bcrypt.hash("Admin123*", 10);
+  const hProgramador = await bcrypt.hash("Programador123*", 10);
   const hInstr = await bcrypt.hash("Instructor123*", 10);
   const hAprendiz = await bcrypt.hash("Aprendiz123*", 10);
 
@@ -28,6 +38,11 @@ async function main() {
     `INSERT INTO usuario (nombres, apellidos, documento, correo, contrasena_hash, rol)
      VALUES ('Administrador','Sistema','1000000001','admin@sena.edu.co',$1,'administrador') RETURNING id_usuario`,
     [hAdmin]
+  );
+  await pool.query(
+    `INSERT INTO usuario (nombres, apellidos, documento, correo, contrasena_hash, rol)
+     VALUES ('Programador','Académico','1000000003','programador@sena.edu.co',$1,'programador')`,
+    [hProgramador]
   );
   const instructor = await pool.query(
     `INSERT INTO usuario (nombres, apellidos, documento, correo, contrasena_hash, rol)
@@ -91,6 +106,7 @@ Datos sembrados correctamente.
 
 CUENTAS DE DEMOSTRACIÓN
   Administrador:  admin@sena.edu.co               / Admin123*
+  Programador:    programador@sena.edu.co         / Programador123*
   Instructor:     cristian.buitrago@sena.edu.co   / Instructor123*
   Aprendices:     camilap.m1230@gmail.com           / Aprendiz123*
                   becerravillalobos08@gmail.com     / Aprendiz123*

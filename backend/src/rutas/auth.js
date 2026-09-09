@@ -74,8 +74,8 @@ router.post("/login", async (req, res) => {
 router.post("/registro", async (req, res) => {
   try {
     const { nombres, apellidos, tipo_documento, documento, correo, telefono, contrasena, rol } = req.body;
-    if (!["aprendiz", "instructor"].includes(rol))
-      return res.status(400).json({ mensaje: "Rol inválido: solo aprendiz o instructor" });
+    if (!["aprendiz", "instructor", "programador"].includes(rol))
+      return res.status(400).json({ mensaje: "Rol inválido: solo aprendiz, instructor o programador" });
     if (!validarContrasena(contrasena))
       return res.status(400).json({ mensaje: "La contraseña debe tener mínimo 8 caracteres, una mayúscula, una minúscula y un número" });
 

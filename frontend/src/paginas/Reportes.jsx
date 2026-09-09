@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { api, obtenerSesion } from "../servicios/api";
+import { api } from "../servicios/api";
+import { useAuth } from "../contexto/AuthContext.jsx";
 
 const VACIO = { nombre: "", id_ficha: "", estado: "", fecha_inicio: "", fecha_fin: "" };
 
 export default function Reportes() {
-  const sesion = obtenerSesion();
+  const { sesion } = useAuth();
   const [filtros, setFiltros] = useState(VACIO);
   const [fichas, setFichas] = useState([]);
   const [resultados, setResultados] = useState(null);
