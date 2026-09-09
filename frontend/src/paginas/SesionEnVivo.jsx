@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { io } from "socket.io-client";
-import { api } from "../servicios/api";
+import { api, obtenerSesion } from "../servicios/api";
 import IconoHuella from "../componentes/IconoHuella.jsx";
 
 export default function SesionEnVivo() {
   const { id } = useParams();
+  const navegar = useNavigate();
+  const rol = obtenerSesion().usuario.rol;
 
   const [sesion, setSesion] = useState(null);
   const [alerta, setAlerta] = useState(null);
@@ -199,6 +201,14 @@ export default function SesionEnVivo() {
     }
   }
 
+  async function eliminar() {
+    if (!confirm("Esto elimina PERMANENTEMENTE esta sesión, con toda su asistencia y justificaciones asociadas. No se puede deshacer. ¿Continuar?")) return;
+    try {
+      await api(`/sesiones/${id}`, { method: "DELETE" });
+      navegar("/sesiones");
+    } catch (e) { setMensaje({ tipo: "error", texto: e.message }); }
+  }
+
   if (!sesion) {
     return (
       <div className="vacio">
@@ -245,21 +255,25 @@ export default function SesionEnVivo() {
           </p>
         </div>
 
-        {sesion.estado === "activa" ? (
-          <button
-            className="boton peligro"
-            onClick={cerrar}
-            disabled={cerrando}
-          >
-            {cerrando
-              ? "⏳ Cerrando sesión..."
-              : "⏹ Cerrar sesión de clase"}
-          </button>
-        ) : (
-          <span className="insignia cerrada">
-            Sesión cerrada
-          </span>
-        )}
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          {sesion.estado === "activa" ? (
+            <button
+              className="boton peligro"
+              onClick={cerrar}
+              disabled={cerrando}
+            >
+              {cerrando
+                ? "⏳ Cerrando sesión..."
+                : "⏹ Cerrar sesión de clase"}
+            </button>
+          ) : (
+            <span className="insignia cerrada">
+              Sesión cerrada
+            </span>
+          )}
+          {rol === "administrador" &&
+            <button className="boton mini suave" onClick={eliminar} title="Borra la sesión y su asistencia permanentemente">🗑 Eliminar sesión</button>}
+        </div>
       </div>
 
       {alerta && (

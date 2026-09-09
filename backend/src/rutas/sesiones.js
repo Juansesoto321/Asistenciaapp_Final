@@ -509,4 +509,37 @@ router.post(
   }
 );
 
+// Elimina permanentemente una sesion y su asistencia/justificaciones asociadas.
+// Solo administrador: es destructivo e irreversible, pensado para limpiar
+// sesiones de prueba (no para corregir asistencia real - para eso esta CU-15).
+router.delete("/:id", autorizar("administrador"), async (req, res) => {
+  const cliente = await pool.connect();
+  try {
+    await cliente.query("BEGIN");
+    await cliente.query(
+      "DELETE FROM cambio_asistencia WHERE id_asistencia IN (SELECT id_asistencia FROM asistencia WHERE id_sesion = $1)",
+      [req.params.id]
+    );
+    await cliente.query(
+      "DELETE FROM justificacion WHERE id_asistencia IN (SELECT id_asistencia FROM asistencia WHERE id_sesion = $1)",
+      [req.params.id]
+    );
+    await cliente.query("DELETE FROM asistencia WHERE id_sesion = $1", [req.params.id]);
+    const r = await cliente.query("DELETE FROM sesion_clase WHERE id_sesion = $1 RETURNING id_sesion", [req.params.id]);
+    if (!r.rows[0]) {
+      await cliente.query("ROLLBACK");
+      return res.status(404).json({ mensaje: "Sesión no encontrada" });
+    }
+    await cliente.query("COMMIT");
+    await auditar(req.usuario.id, "eliminar_sesion_clase", "sesion_clase", Number(req.params.id));
+    res.json({ mensaje: "Sesión eliminada permanentemente, junto con su asistencia y justificaciones" });
+  } catch (e) {
+    await cliente.query("ROLLBACK");
+    console.error(e);
+    res.status(500).json({ mensaje: "Error al eliminar la sesión" });
+  } finally {
+    cliente.release();
+  }
+});
+
 module.exports = router;
