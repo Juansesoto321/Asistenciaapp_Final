@@ -14,6 +14,8 @@ export function claveFecha(d) {
   return `${y}-${m}-${dia}`;
 }
 
+//cambiio de horario
+
 /**
  * Calendario mensual interactivo.
  *
