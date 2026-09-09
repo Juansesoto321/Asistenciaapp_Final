@@ -76,7 +76,8 @@ async function listarHorarios(usuario) {
   return resultado.rows;
 }
 
-async function buscarConflictoHorario(datos) {
+/** `idExcluir` evita que un horario choque consigo mismo al editarlo. */
+async function buscarConflictoHorario(datos, idExcluir = null) {
   const resultado = await pool.query(
     `SELECT h.id_horario, f.numero_ficha,
             CASE WHEN h.id_instructor = $1 THEN 'instructor' ELSE 'ambiente' END AS tipo
@@ -84,10 +85,27 @@ async function buscarConflictoHorario(datos) {
      WHERE h.dia_semana = $3
        AND (h.id_instructor = $1 OR h.id_ambiente = $2)
        AND (h.hora_inicio, h.hora_fin) OVERLAPS ($4::time, $5::time)
+       AND ($6::int IS NULL OR h.id_horario <> $6)
      LIMIT 1`,
-    [datos.id_instructor, datos.id_ambiente, datos.dia_semana, datos.hora_inicio, datos.hora_fin]
+    [datos.id_instructor, datos.id_ambiente, datos.dia_semana, datos.hora_inicio, datos.hora_fin, idExcluir]
   );
   return resultado.rows[0];
+}
+
+async function buscarHorario(id) {
+  const resultado = await pool.query("SELECT * FROM horario WHERE id_horario = $1", [id]);
+  return resultado.rows[0] || null;
+}
+
+async function editarHorario(id, datos) {
+  const resultado = await pool.query(
+    `UPDATE horario SET id_ficha = $1, id_ambiente = $2, id_instructor = $3,
+            id_periodo = $4, dia_semana = $5, hora_inicio = $6, hora_fin = $7
+     WHERE id_horario = $8 RETURNING *`,
+    [datos.id_ficha, datos.id_ambiente, datos.id_instructor, datos.id_periodo,
+     datos.dia_semana, datos.hora_inicio, datos.hora_fin, id]
+  );
+  return resultado.rows[0] || null;
 }
 
 async function crearHorario(datos) {
@@ -164,6 +182,7 @@ async function listarDispositivos() {
 }
 
 module.exports = {
+  finalizarFichasVencidas,
   listarPeriodos,
   listarInstructores,
   listarFichas,
@@ -171,7 +190,9 @@ module.exports = {
   crearFicha,
   listarHorarios,
   buscarConflictoHorario,
+  buscarHorario,
   crearHorario,
+  editarHorario,
   eliminarHorario,
   listarMatriculasDeFicha,
   matricularAprendiz,

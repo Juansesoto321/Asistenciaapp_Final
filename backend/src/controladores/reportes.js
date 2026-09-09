@@ -1,63 +1,57 @@
 const servicio = require("../servicios/reportes");
 
-function responderError(res, error, mensaje) {
-  if (error.tipo === "validacion") return res.status(400).json({ mensaje: error.message });
-  console.error(error);
-  return res.status(500).json({ mensaje });
-}
-
 // CU-17
-async function buscar(req, res) {
+async function buscar(req, res, next) {
   try {
     res.json(await servicio.buscar(req.query, req.usuario));
   } catch (error) {
-    responderError(res, error, "Error en la búsqueda");
+    next(error);
   }
 }
 
 // CU-18
-async function exportar(req, res) {
+async function exportar(req, res, next) {
   try {
     const csv = await servicio.exportarCSV(req.query, req.usuario);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", "attachment; filename=reporte_asistencia.csv");
     res.send(csv);
   } catch (error) {
-    responderError(res, error, "Error al exportar");
+    next(error);
   }
 }
 
-async function listarBusquedasGuardadas(req, res) {
+async function listarBusquedasGuardadas(req, res, next) {
   try {
     res.json(await servicio.listarBusquedasGuardadas(req.usuario.id));
   } catch (error) {
-    responderError(res, error, "Error al listar las búsquedas guardadas");
+    next(error);
   }
 }
 
-async function guardarBusqueda(req, res) {
+async function guardarBusqueda(req, res, next) {
   try {
     const guardada = await servicio.guardarBusqueda(req.usuario.id, req.body.nombre, req.body.filtros);
     res.status(201).json(guardada);
   } catch (error) {
-    responderError(res, error, "Error al guardar la búsqueda");
+    next(error);
   }
 }
 
 // CU-19
-async function miHistorial(req, res) {
+async function miHistorial(req, res, next) {
   try {
     res.json(await servicio.historialAprendiz(req.usuario.id, req.query.id_ficha));
   } catch (error) {
-    responderError(res, error, "Error al obtener el historial");
+    next(error);
   }
 }
 
-async function estadisticas(req, res) {
+async function estadisticas(req, res, next) {
   try {
     res.json(await servicio.obtenerEstadisticas(req.usuario));
   } catch (error) {
-    responderError(res, error, "Error al obtener las estadísticas");
+    next(error);
   }
 }
 

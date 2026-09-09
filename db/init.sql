@@ -234,11 +234,25 @@ CREATE TABLE IF NOT EXISTS configuracion (
   valor VARCHAR(100) NOT NULL
 );
 
+-- Registro de errores del backend: permite saber que fallo, cuando y en que ruta
+CREATE TABLE IF NOT EXISTS log_error (
+  id_log     SERIAL PRIMARY KEY,
+  nivel      VARCHAR(10)  NOT NULL DEFAULT 'error'
+             CHECK (nivel IN ('error','advertencia')),
+  mensaje    TEXT         NOT NULL,
+  metodo     VARCHAR(10),
+  ruta       VARCHAR(255),
+  id_usuario INTEGER      REFERENCES usuario(id_usuario) ON DELETE SET NULL,
+  traza      TEXT,
+  creado_en  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
 -- Índices de consulta frecuente
 CREATE INDEX IF NOT EXISTS idx_asistencia_aprendiz ON asistencia(id_aprendiz);
 CREATE INDEX IF NOT EXISTS idx_asistencia_sesion   ON asistencia(id_sesion);
 CREATE INDEX IF NOT EXISTS idx_sesion_fecha        ON sesion_clase(fecha);
 CREATE INDEX IF NOT EXISTS idx_notificacion_user   ON notificacion(id_usuario, leida);
+CREATE INDEX IF NOT EXISTS idx_log_error_fecha     ON log_error(creado_en DESC);
 
 -- ---------- CONFIGURACIÓN INICIAL ----------
 INSERT INTO configuracion (clave, valor) VALUES

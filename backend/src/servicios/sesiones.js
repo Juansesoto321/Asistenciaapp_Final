@@ -3,8 +3,8 @@
  * CU-15 Asistencia manual/override · cierre con generacion de justificaciones (72h)
  */
 const crypto = require("crypto");
-const pool = require("../config/db");
 const repo = require("../repositorios/sesiones");
+const { enTransaccion } = require("../repositorios/transaccion");
 const { enviarCorreo } = require("./correo");
 const { auditar } = require("./auditoria");
 const { emitirASesion, emitirNotificacionNueva } = require("./tiempoReal");
@@ -85,34 +85,27 @@ async function registrarAsistenciaManual(idSesion, usuario, { id_aprendiz, estad
   const sesion = await repo.buscarEstadoSesion(idSesion);
   if (!sesion) throw error("Sesión no encontrada", "no_encontrado");
 
-  const cliente = await pool.connect();
-  let idAsistencia;
-  try {
-    await cliente.query("BEGIN");
-
+  const idAsistencia = await enTransaccion(async (cliente) => {
     const upsert = await repo.upsertAsistenciaManual(cliente, {
       idSesion, idAprendiz: id_aprendiz, estado, motivo, registradoPor: usuario.id,
     });
-    idAsistencia = upsert.id_asistencia;
 
     await repo.insertarCambioAsistencia(cliente, {
-      idAsistencia, estadoAnterior: upsert.estado_anterior, estadoNuevo: estado, motivo, cambiadoPor: usuario.id,
+      idAsistencia: upsert.id_asistencia, estadoAnterior: upsert.estado_anterior,
+      estadoNuevo: estado, motivo, cambiadoPor: usuario.id,
     });
 
     // Si queda "ausente", genera el enlace de justificación, correo y notificación,
     // igual que al cerrar la sesión.
     if (estado === "ausente") {
       const f = await repo.buscarFichaDeSesion(cliente, idSesion);
-      if (f) await generarJustificacionYNotificar(cliente, { idAsistencia, idAprendiz: id_aprendiz, numeroFicha: f.numero_ficha });
+      if (f) await generarJustificacionYNotificar(cliente, {
+        idAsistencia: upsert.id_asistencia, idAprendiz: id_aprendiz, numeroFicha: f.numero_ficha,
+      });
     }
 
-    await cliente.query("COMMIT");
-  } catch (e) {
-    await cliente.query("ROLLBACK");
-    throw e;
-  } finally {
-    cliente.release();
-  }
+    return upsert.id_asistencia;
+  });
 
   const u = await repo.buscarNombreUsuario(id_aprendiz);
   if (u) {
@@ -136,25 +129,17 @@ async function cerrarSesion(idSesion, usuario) {
   if (usuario.rol === "instructor" && s.id_instructor !== usuario.id)
     throw error("Solo el instructor titular puede cerrar la sesión", "prohibido");
 
-  const cliente = await pool.connect();
-  let ausentes;
-  try {
-    await cliente.query("BEGIN");
-    ausentes = await repo.marcarAusentesSinRegistro(cliente, idSesion, s.id_ficha);
+  const ausentes = await enTransaccion(async (cliente) => {
+    const sinRegistro = await repo.marcarAusentesSinRegistro(cliente, idSesion, s.id_ficha);
     await repo.cerrarSesion(cliente, idSesion, usuario.id);
 
     // Por cada ausente: enlace de justificacion + correo + notificacion
-    for (const a of ausentes) {
+    for (const a of sinRegistro) {
       await generarJustificacionYNotificar(cliente, { idAsistencia: a.id_asistencia, idAprendiz: a.id_aprendiz, numeroFicha: s.numero_ficha });
     }
 
-    await cliente.query("COMMIT");
-  } catch (e) {
-    await cliente.query("ROLLBACK");
-    throw e;
-  } finally {
-    cliente.release();
-  }
+    return sinRegistro;
+  });
 
   await auditar(usuario.id, "cerrar_sesion_clase", "sesion_clase", Number(idSesion), { ausentes: ausentes.length });
 
@@ -165,22 +150,10 @@ async function cerrarSesion(idSesion, usuario) {
 // Solo administrador: es destructivo e irreversible, pensado para limpiar
 // sesiones de prueba (no para corregir asistencia real - para eso esta CU-15).
 async function eliminarSesion(idSesion, usuario) {
-  const cliente = await pool.connect();
-  let eliminada;
-  try {
-    await cliente.query("BEGIN");
-    eliminada = await repo.eliminarSesion(cliente, idSesion);
-    if (!eliminada) {
-      await cliente.query("ROLLBACK");
-      throw error("Sesión no encontrada", "no_encontrado");
-    }
-    await cliente.query("COMMIT");
-  } catch (e) {
-    if (!e.tipo) await cliente.query("ROLLBACK");
-    throw e;
-  } finally {
-    cliente.release();
-  }
+  await enTransaccion(async (cliente) => {
+    const eliminada = await repo.eliminarSesion(cliente, idSesion);
+    if (!eliminada) throw error("Sesión no encontrada", "no_encontrado");
+  });
 
   await auditar(usuario.id, "eliminar_sesion_clase", "sesion_clase", Number(idSesion));
   return { mensaje: "Sesión eliminada permanentemente, junto con su asistencia y justificaciones" };

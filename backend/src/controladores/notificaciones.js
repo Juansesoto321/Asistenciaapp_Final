@@ -1,30 +1,27 @@
 const servicio = require("../servicios/notificaciones");
 
-async function listar(req, res) {
+async function listar(req, res, next) {
   try {
     res.json(await servicio.obtenerNotificaciones(req.usuario.id));
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: "Error al listar las notificaciones" });
+    next(error);
   }
 }
 
-async function contador(req, res) {
+async function contador(req, res, next) {
   try {
     res.json({ pendientes: await servicio.obtenerContador(req.usuario.id) });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: "Error al obtener el contador de notificaciones" });
+    next(error);
   }
 }
 
-async function marcarLeida(req, res) {
+async function marcarLeida(req, res, next) {
   try {
     await servicio.marcarComoLeida(req.params.id, req.usuario.id);
     res.json({ ok: true });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: "Error al marcar la notificación" });
+    next(error);
   }
 }
 

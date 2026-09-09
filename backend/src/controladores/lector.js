@@ -1,30 +1,16 @@
 const dispositivoRepo = require("../repositorios/dispositivo");
 const marcacionServicio = require("../servicios/marcacion");
 
-const ESTADOS_HTTP = { sin_sesion: 409, no_reconocida: 404 };
-
-function responderError(res, error) {
-  if (!error.tipo) {
-    console.error(error);
-    return res.status(500).json({ mensaje: "Error procesando la marcación" });
-  }
-  res.status(ESTADOS_HTTP[error.tipo] || 500).json({
-    resultado: error.tipo,
-    mensaje: error.message,
-  });
-}
-
-async function heartbeat(req, res) {
+async function heartbeat(req, res, next) {
   try {
     await dispositivoRepo.marcarEnLinea(req.dispositivo.id_dispositivo);
     res.json({ ok: true });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ mensaje: "Error en el heartbeat" });
+  } catch (error) {
+    next(error);
   }
 }
 
-async function marcacion(req, res) {
+async function marcacion(req, res, next) {
   try {
     const { lectura } = req.body; // en produccion: template del SDK; simulado: identificador del dedo
     const resultado = await marcacionServicio.marcarPorHuella(req.dispositivo.id_ambiente, lectura);
@@ -37,8 +23,10 @@ async function marcacion(req, res) {
       mensaje: `${resultado.aprendiz.nombres} ${resultado.aprendiz.apellidos}: ${resultado.estado.toUpperCase()}`,
       estado: resultado.estado,
     });
-  } catch (e) {
-    responderError(res, e);
+  } catch (error) {
+    // El simulador y el lector esperan un campo `resultado` junto al mensaje
+    if (error.tipo) error.resultado = error.tipo;
+    next(error);
   }
 }
 

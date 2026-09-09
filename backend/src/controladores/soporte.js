@@ -1,12 +1,6 @@
 const servicio = require("../servicios/soporte");
 
-function responderError(res, error, mensaje) {
-  if (error.tipo === "validacion") return res.status(400).json({ mensaje: error.message });
-  console.error(error);
-  return res.status(500).json({ mensaje });
-}
-
-async function crear(req, res) {
+async function crear(req, res, next) {
   try {
     const idTicket = await servicio.crear({
       idUsuario: req.usuario.id,
@@ -15,24 +9,24 @@ async function crear(req, res) {
     });
     res.status(201).json({ mensaje: `Ticket #${idTicket} registrado. Te notificaremos la respuesta`, id_ticket: idTicket });
   } catch (error) {
-    responderError(res, error, "Error al registrar el ticket");
+    next(error);
   }
 }
 
-async function listar(req, res) {
+async function listar(req, res, next) {
   try {
     res.json(await servicio.obtenerListado(req.usuario));
   } catch (error) {
-    responderError(res, error, "Error al listar los tickets");
+    next(error);
   }
 }
 
-async function cambiarEstado(req, res) {
+async function cambiarEstado(req, res, next) {
   try {
     await servicio.cambiarEstado(req.params.id, req.body.estado);
     res.json({ mensaje: "Ticket actualizado" });
   } catch (error) {
-    responderError(res, error, "Error al actualizar el ticket");
+    next(error);
   }
 }
 

@@ -1,60 +1,50 @@
 const servicio = require("../servicios/sesiones");
 
-const ESTADOS_HTTP = { no_encontrado: 404, prohibido: 403, validacion: 400 };
-
-function responderError(res, error, mensaje) {
-  if (!error.tipo) {
-    console.error(error);
-    return res.status(500).json({ mensaje });
-  }
-  res.status(ESTADOS_HTTP[error.tipo] || 500).json({ mensaje: error.message });
-}
-
-async function horariosDeHoy(req, res) {
+async function horariosDeHoy(req, res, next) {
   try {
     res.json(await servicio.horariosDeHoy(req.usuario));
-  } catch (e) {
-    responderError(res, e, "Error al consultar los horarios de hoy");
+  } catch (error) {
+    next(error);
   }
 }
 
-async function iniciarSesion(req, res) {
+async function iniciarSesion(req, res, next) {
   try {
     res.json(await servicio.iniciarSesion(req.body.id_horario, req.usuario));
-  } catch (e) {
-    responderError(res, e, "Error al iniciar la sesión");
+  } catch (error) {
+    next(error);
   }
 }
 
-async function verDetalle(req, res) {
+async function verDetalle(req, res, next) {
   try {
     res.json(await servicio.verDetalle(req.params.id));
-  } catch (e) {
-    responderError(res, e, "Error al consultar la sesión");
+  } catch (error) {
+    next(error);
   }
 }
 
-async function registrarAsistenciaManual(req, res) {
+async function registrarAsistenciaManual(req, res, next) {
   try {
     res.json(await servicio.registrarAsistenciaManual(req.params.id, req.usuario, req.body));
-  } catch (e) {
-    responderError(res, e, "Error en el registro manual");
+  } catch (error) {
+    next(error);
   }
 }
 
-async function cerrarSesion(req, res) {
+async function cerrarSesion(req, res, next) {
   try {
     res.json(await servicio.cerrarSesion(req.params.id, req.usuario));
-  } catch (e) {
-    responderError(res, e, "Error al cerrar la sesión");
+  } catch (error) {
+    next(error);
   }
 }
 
-async function eliminarSesion(req, res) {
+async function eliminarSesion(req, res, next) {
   try {
     res.json(await servicio.eliminarSesion(req.params.id, req.usuario));
-  } catch (e) {
-    responderError(res, e, "Error al eliminar la sesión");
+  } catch (error) {
+    next(error);
   }
 }
 

@@ -47,6 +47,34 @@ async function crearHorario(datos, usuario) {
   return horario;
 }
 
+async function editarHorario(id, datos, usuario) {
+  const actual = await repositorio.buscarHorario(id);
+  if (!actual) throw error("Horario no encontrado", "no_encontrado");
+
+  // Campos no enviados conservan su valor actual
+  const nuevo = {
+    id_ficha: datos.id_ficha ?? actual.id_ficha,
+    id_ambiente: datos.id_ambiente ?? actual.id_ambiente,
+    id_instructor: datos.id_instructor ?? actual.id_instructor,
+    id_periodo: datos.id_periodo ?? actual.id_periodo,
+    dia_semana: datos.dia_semana ?? actual.dia_semana,
+    hora_inicio: datos.hora_inicio ?? actual.hora_inicio,
+    hora_fin: datos.hora_fin ?? actual.hora_fin,
+  };
+
+  const conflicto = await repositorio.buscarConflictoHorario(nuevo, Number(id));
+  if (conflicto) {
+    throw error(
+      `Conflicto de ${conflicto.tipo}: se cruza con la ficha ${conflicto.numero_ficha} en ese horario`,
+      "conflicto_horario"
+    );
+  }
+
+  const horario = await repositorio.editarHorario(id, nuevo);
+  await auditar(usuario.id, "editar_horario", "horario", Number(id), nuevo);
+  return horario;
+}
+
 async function eliminarHorario(id, usuario) {
   await repositorio.eliminarHorario(id);
   await auditar(usuario.id, "eliminar_horario", "horario", Number(id));
@@ -114,6 +142,7 @@ module.exports = {
   crearFicha,
   obtenerHorarios,
   crearHorario,
+  editarHorario,
   eliminarHorario,
   obtenerMatriculasDeFicha,
   matricularAprendices,
