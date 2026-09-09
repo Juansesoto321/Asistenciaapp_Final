@@ -6,6 +6,7 @@ const pool = require("../config/db");
 const { cifrar, generarTemplateSimulado } = require("../servicios/cifrado");
 const { auditar } = require("../servicios/auditoria");
 const { autenticar, autorizar } = require("../middleware/autenticar");
+const { emitirNotificacionNueva } = require("../servicios/tiempoReal");
 
 const router = express.Router();
 router.use(autenticar);
@@ -93,6 +94,7 @@ router.delete("/:idAprendiz", autorizar("administrador"), async (req, res) => {
                'Tu plantilla biométrica fue eliminada permanentemente según tu solicitud (Ley 1581/2012). Tus registros históricos de asistencia se conservan.')`,
       [req.params.idAprendiz]
     );
+    emitirNotificacionNueva(Number(req.params.idAprendiz));
     await auditar(req.usuario.id, "eliminar_datos_biometricos", "usuario", Number(req.params.idAprendiz));
     res.json({ mensaje: "Datos biométricos eliminados permanentemente. El registro queda en auditoría" });
   } catch (e) {

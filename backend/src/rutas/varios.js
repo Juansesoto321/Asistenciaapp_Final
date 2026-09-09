@@ -3,6 +3,7 @@ const express = require("express");
 const pool = require("../config/db");
 const { auditar } = require("../servicios/auditoria");
 const { autenticar, autorizar } = require("../middleware/autenticar");
+const { emitirNotificacionNueva, emitirNotificacionAdmins } = require("../servicios/tiempoReal");
 
 const router = express.Router();
 router.use(autenticar);
@@ -15,9 +16,18 @@ router.get("/notificaciones", async (req, res) => {
   );
   res.json(r.rows);
 });
+// Numerito del menu: cuantas notificaciones sin leer tiene el usuario actual.
+router.get("/notificaciones/contador", async (req, res) => {
+  const r = await pool.query(
+    "SELECT COUNT(*)::int AS pendientes FROM notificacion WHERE id_usuario = $1 AND leida = FALSE",
+    [req.usuario.id]
+  );
+  res.json({ pendientes: r.rows[0].pendientes });
+});
 router.patch("/notificaciones/:id/leida", async (req, res) => {
   try {
     await pool.query("UPDATE notificacion SET leida = TRUE WHERE id_notificacion = $1 AND id_usuario = $2", [req.params.id, req.usuario.id]);
+    emitirNotificacionNueva(req.usuario.id);
     res.json({ ok: true });
   } catch (e) {
     console.error(e);
@@ -41,6 +51,7 @@ router.post("/soporte", async (req, res) => {
        FROM usuario WHERE rol = 'administrador' AND estado = 'activo'`,
       [r.rows[0].id_ticket, tipo]
     );
+    emitirNotificacionAdmins();
     res.status(201).json({ mensaje: `Ticket #${r.rows[0].id_ticket} registrado. Te notificaremos la respuesta`, id_ticket: r.rows[0].id_ticket });
   } catch (e) {
     console.error(e);

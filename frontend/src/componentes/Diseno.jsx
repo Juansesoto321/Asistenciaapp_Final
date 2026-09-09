@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
+import { api } from "../servicios/api";
 import { useAuth } from "../contexto/AuthContext.jsx";
 import IconoHuella from "./IconoHuella.jsx";
 import IconoSoporte from "./IconoSoporte.jsx";
@@ -50,6 +53,18 @@ export default function Diseno({ children }) {
   const { sesion, cerrarSesion } = useAuth();
   const navegar = useNavigate();
   const menu = MENUS[sesion.usuario.rol] || [];
+  const [notifPendientes, setNotifPendientes] = useState(0);
+
+  // Numerito de notificaciones sin leer, cualquier rol, actualizado en vivo.
+  useEffect(() => {
+    const cargar = () => api("/notificaciones/contador").then((r) => setNotifPendientes(r.pendientes)).catch(() => {});
+    cargar();
+    const socket = io();
+    socket.emit("unirse_panel", { rol: sesion.usuario.rol, id: sesion.usuario.id });
+    socket.on("notificaciones:actualizadas", cargar);
+    return () => socket.disconnect();
+  }, [sesion.usuario.id, sesion.usuario.rol]);
+
   return (
     <div className="aplicacion">
       <aside className="barra-lateral">
@@ -62,8 +77,17 @@ export default function Diseno({ children }) {
         </div>
         <nav>
           {menu.map(([ruta, icono, nombre]) => (
-            <NavLink key={ruta} to={ruta} className={({ isActive }) => (isActive ? "activo" : "")}>
-              <span>{icono}</span> {nombre}
+            <NavLink key={ruta} to={ruta} className={({ isActive }) => (isActive ? "activo" : "")}
+                     style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span><span>{icono}</span> {nombre}</span>
+              {ruta === "/notificaciones" && notifPendientes > 0 && (
+                <span style={{
+                  background: "var(--rojo)", color: "#fff", borderRadius: 999, minWidth: 18, height: 18,
+                  fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "0 5px",
+                }}>
+                  {notifPendientes > 99 ? "99+" : notifPendientes}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

@@ -6,7 +6,7 @@ const express = require("express");
 const pool = require("../config/db");
 const { auditar } = require("../servicios/auditoria");
 const { enviarCorreo } = require("../servicios/correo");
-const { emitirJustificacionesActualizadas } = require("../servicios/tiempoReal");
+const { emitirJustificacionesActualizadas, emitirNotificacionNueva } = require("../servicios/tiempoReal");
 const { autenticar, autorizar } = require("../middleware/autenticar");
 
 const router = express.Router();
@@ -81,6 +81,7 @@ router.post("/token/:token", async (req, res) => {
       );
       // CU-24: refleja al instante el nuevo pendiente en el contador del panel del instructor (y del admin)
       emitirJustificacionesActualizadas(instr.rows[0].id_instructor);
+      emitirNotificacionNueva(instr.rows[0].id_instructor);
     }
     res.json({ mensaje: "Justificación enviada. El instructor la revisará" });
   } catch (e) {
@@ -203,6 +204,7 @@ router.patch("/:id", autorizar("instructor", "administrador"), async (req, res) 
       );
     }
     await cliente.query("COMMIT");
+    emitirNotificacionNueva(aprendiz);
     await auditar(req.usuario.id, `justificacion_${estado}`, "justificacion", Number(req.params.id));
 
     // Ya se resolvió: baja el contador de pendientes en el panel del instructor (y del admin)

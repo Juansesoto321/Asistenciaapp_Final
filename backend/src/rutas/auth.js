@@ -10,6 +10,7 @@ const pool = require("../config/db");
 const { enviarCorreo } = require("../servicios/correo");
 const { auditar } = require("../servicios/auditoria");
 const { autenticar } = require("../middleware/autenticar");
+const { emitirNotificacionAdmins } = require("../servicios/tiempoReal");
 
 const router = express.Router();
 const MAX_INTENTOS = 5; // regla CU-01: bloqueo tras 5 intentos fallidos
@@ -92,6 +93,7 @@ router.post("/registro", async (req, res) => {
               $1 FROM usuario WHERE rol = 'administrador' AND estado = 'activo'`,
       [`${nombres} ${apellidos} (${rol}) solicitó una cuenta y espera aprobación.`]
     );
+    emitirNotificacionAdmins();
     await auditar(r.rows[0].id_usuario, "solicitud_registro", "usuario", r.rows[0].id_usuario);
     res.status(201).json({ mensaje: "Solicitud enviada. Un administrador aprobará tu cuenta" });
   } catch (e) {

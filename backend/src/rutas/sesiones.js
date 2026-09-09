@@ -8,7 +8,7 @@ const crypto = require("crypto");
 const pool = require("../config/db");
 const { enviarCorreo } = require("../servicios/correo");
 const { auditar } = require("../servicios/auditoria");
-const { emitirASesion } = require("../servicios/tiempoReal");
+const { emitirASesion, emitirNotificacionNueva } = require("../servicios/tiempoReal");
 const { autenticar, autorizar } = require("../middleware/autenticar");
 
 const router = express.Router();
@@ -61,6 +61,8 @@ async function generarJustificacionYNotificar(
              'Faltaste a la clase de hoy. Revisa tu correo: tienes ${horas} horas para cargar una justificación.')`,
     [idAprendiz]
   );
+
+  emitirNotificacionNueva(idAprendiz);
 }
 
 // Horarios de HOY del instructor, con estado de sesion

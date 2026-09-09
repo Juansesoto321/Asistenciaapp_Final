@@ -10,10 +10,13 @@ function inicializar(servidorHttp) {
   io.on("connection", (socket) => {
     socket.on("unirse_sesion", (idSesion) => socket.join(`sesion_${idSesion}`));
     socket.on("salir_sesion", (idSesion) => socket.leave(`sesion_${idSesion}`));
-    // Panel del instructor/administrador: sala para el contador de justificaciones pendientes
+    // Panel de cualquier rol: sala personal (badge de notificaciones) y, para
+    // instructor/administrador, ademas las salas del contador de justificaciones.
     socket.on("unirse_panel", ({ rol, id }) => {
+      socket.join(`usuario_${id}`);
       if (rol === "instructor") socket.join(`instructor_${id}`);
       else if (rol === "administrador") socket.join("justificaciones_admin");
+      if (rol === "administrador") socket.join("administradores");
     });
   });
   return io;
@@ -31,4 +34,20 @@ function emitirJustificacionesActualizadas(idInstructor) {
   io.to("justificaciones_admin").emit("justificaciones:actualizadas");
 }
 
-module.exports = { inicializar, emitirASesion, emitirJustificacionesActualizadas };
+// Avisa a un usuario puntual que le llegó una notificación nueva (badge del menú).
+function emitirNotificacionNueva(idUsuario) {
+  if (io && idUsuario) io.to(`usuario_${idUsuario}`).emit("notificaciones:actualizadas");
+}
+
+// Avisa a todos los administradores conectados (para notificaciones sin un solo destinatario, ej. soporte, registro).
+function emitirNotificacionAdmins() {
+  if (io) io.to("administradores").emit("notificaciones:actualizadas");
+}
+
+module.exports = {
+  inicializar,
+  emitirASesion,
+  emitirJustificacionesActualizadas,
+  emitirNotificacionNueva,
+  emitirNotificacionAdmins,
+};
