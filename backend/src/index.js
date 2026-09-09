@@ -26,22 +26,22 @@ app.use(express.json({ limit: "10mb" })); // adjuntos de justificacion en base64
 app.get("/api/salud", (_req, res) => res.json({ ok: true, servicio: "AsistenciaApp", fecha: new Date() }));
 
 // Rutas con prefijo propio (el orden importa: las publicas primero)
-app.use("/api/auth", require("./rutas/auth"));
-app.use("/api/lector", require("./rutas/lector"));            // dispositivo (clave API)
-app.use("/api/justificaciones", require("./rutas/justificaciones")); // incluye rutas publicas por token
-app.use("/api/usuarios", require("./rutas/usuarios"));
-app.use("/api/biometria", require("./rutas/biometria"));
-app.use("/api/sesiones", require("./rutas/sesiones"));
-app.use("/api/reportes", require("./rutas/reportes"));
-app.use("/api/notificaciones", require("./rutas/notificaciones"));
-app.use("/api/soporte", require("./rutas/soporte"));
-app.use("/api/configuracion", require("./rutas/configuracion"));
+app.use("/api/auth", require("./apis/auth"));
+app.use("/api/lector", require("./apis/lector"));            // dispositivo (clave API)
+app.use("/api/justificaciones", require("./apis/justificaciones")); // incluye rutas publicas por token
+app.use("/api/usuarios", require("./apis/usuarios"));
+app.use("/api/biometria", require("./apis/biometria"));
+app.use("/api/sesiones", require("./apis/sesiones"));
+app.use("/api/reportes", require("./apis/reportes"));
+app.use("/api/notificaciones", require("./apis/notificaciones"));
+app.use("/api/soporte", require("./apis/soporte"));
+app.use("/api/configuracion", require("./apis/configuracion"));
 // Routers montados en /api (requieren token): SIEMPRE al final
-app.use("/api", require("./rutas/academico"));
+app.use("/api", require("./apis/academico"));
 
 // Protocolo real ZKTeco PUSH/ADMS (lectores fisicos como el SenseFace 2A).
 // Rutas fijas por el protocolo: no llevan prefijo /api.
-app.use("/iclock", require("./rutas/adms"));
+app.use("/iclock", require("./apis/adms"));
 
 // ---- ESPIA TEMPORAL: registra cualquier otra peticion no reconocida ----
 app.all(/.*/, (req, res) => {
