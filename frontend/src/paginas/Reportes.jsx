@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../servicios/api";
+import Icono from "../componentes/Iconos.jsx";
 import { useAuth } from "../contexto/AuthContext.jsx";
 
 const VACIO = { nombre: "", id_ficha: "", estado: "", fecha_inicio: "", fecha_fin: "" };
@@ -73,9 +74,9 @@ export default function Reportes() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-          <button className="boton" onClick={buscar}>🔎 Buscar</button>
-          <button className="boton suave" onClick={guardar}>💾 Guardar búsqueda</button>
-          {resultados?.length > 0 && <button className="boton exito" onClick={exportar}>📥 Exportar CSV</button>}
+          <button className="boton" onClick={buscar}><Icono nombre="reportes" /> Buscar</button>
+          <button className="boton suave" onClick={guardar}>Guardar búsqueda</button>
+          {resultados?.length > 0 && <button className="boton exito" onClick={exportar}>Exportar CSV</button>}
           {guardadas.length > 0 && (
             <select style={{ maxWidth: 240 }} onChange={(e) => {
               const g = guardadas.find((x) => x.id_busqueda === Number(e.target.value));
@@ -104,6 +105,19 @@ export default function Reportes() {
             {!resultados.length && <tr><td colSpan={7}><div className="vacio">Sin resultados con esos filtros.</div></td></tr>}
           </tbody>
         </table>
+      )}
+
+      {!resultados && (
+        <div className="tarjeta">
+          <div className="vacio">
+            <Icono nombre="reportes" size="2.4em" style={{ color: "var(--tinta-suave)", opacity: 0.5 }} />
+            <p style={{ marginTop: 10, fontWeight: 600, color: "var(--tinta)" }}>Aún no has hecho ninguna búsqueda</p>
+            <p style={{ margin: "4px 0 0" }}>
+              Combina los filtros de arriba y pulsa <b>Buscar</b>. Después podrás exportar el resultado a CSV
+              o guardar la búsqueda para repetirla.
+            </p>
+          </div>
+        </div>
       )}
     </>
   );

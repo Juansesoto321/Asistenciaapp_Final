@@ -25,6 +25,22 @@ export default function Usuarios() {
     } catch (e) { setMensaje({ tipo: "error", texto: e.message }); }
   }
 
+  function abrirEdicion(u) {
+    setF({ ...VACIO, nombres: u.nombres, apellidos: u.apellidos, telefono: u.telefono || "", rol: u.rol });
+    setModal({ editar: u });
+  }
+
+  async function guardarEdicion() {
+    const u = modal.editar;
+    try {
+      const r = await api(`/usuarios/${u.id_usuario}`, {
+        method: "PUT",
+        body: { nombres: f.nombres, apellidos: f.apellidos, telefono: f.telefono, rol: f.rol },
+      });
+      setMensaje({ tipo: "exito", texto: r.mensaje }); setModal(null); setF(VACIO); cargar();
+    } catch (e) { setMensaje({ tipo: "error", texto: e.message }); }
+  }
+
   async function cambiarEstado(u, estado) {
     try {
       const r = await api(`/usuarios/${u.id_usuario}/estado`, { method: "PATCH", body: { estado } });
@@ -112,8 +128,9 @@ export default function Usuarios() {
               <td style={{ textTransform: "capitalize" }}>{u.rol}</td>
               <td><span className={`insignia ${u.estado}`}>{u.estado}</span></td>
               <td style={{ display: "flex", gap: 6 }}>
+                <button className="boton mini suave" onClick={() => abrirEdicion(u)}>Editar</button>
                 {u.estado === "pendiente" && <button className="boton mini exito" onClick={() => cambiarEstado(u, "activo")}>Aprobar</button>}
-                {u.estado === "activo" && <button className="boton mini peligro" onClick={() => cambiarEstado(u, "inactivo")}>Desactivar</button>}
+                {u.estado === "activo" && <button className="boton mini suave" onClick={() => cambiarEstado(u, "inactivo")}>Desactivar</button>}
                 {u.estado === "inactivo" && <button className="boton mini exito" onClick={() => cambiarEstado(u, "activo")}>Reactivar</button>}
               </td>
             </tr>
@@ -121,6 +138,34 @@ export default function Usuarios() {
           {!usuarios.length && <tr><td colSpan={6}><div className="vacio">No hay usuarios con esos filtros.</div></td></tr>}
         </tbody>
       </table>
+
+      {modal?.editar && (
+        <div className="superposicion" onClick={() => setModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Editar usuario</h2>
+            <p style={{ color: "var(--tinta-suave)", fontSize: 13.5 }}>
+              {modal.editar.correo} · documento {modal.editar.documento} (no se pueden cambiar)
+            </p>
+            <div className="rejilla-2">
+              <div><label>Nombres</label><input value={f.nombres} onChange={(e) => setF({ ...f, nombres: e.target.value })} /></div>
+              <div><label>Apellidos</label><input value={f.apellidos} onChange={(e) => setF({ ...f, apellidos: e.target.value })} /></div>
+            </div>
+            <label>Teléfono</label>
+            <input value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} />
+            <label>Rol</label>
+            <select value={f.rol} onChange={(e) => setF({ ...f, rol: e.target.value })}>
+              <option value="aprendiz">Aprendiz</option>
+              <option value="instructor">Instructor</option>
+              <option value="programador">Programador</option>
+              <option value="coordinador">Coordinador</option>
+            </select>
+            <div className="acciones-modal">
+              <button className="boton suave" onClick={() => setModal(null)}>Cancelar</button>
+              <button className="boton" onClick={guardarEdicion}>Guardar cambios</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {modal === "crear" && (
         <div className="superposicion" onClick={() => setModal(null)}>
