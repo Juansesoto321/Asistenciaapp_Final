@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { api } from "../servicios/api";
+import Cargando from "../componentes/Cargando.jsx";
 
 const VACIO = { nombres: "", apellidos: "", tipo_documento: "CC", documento: "", correo: "", telefono: "", rol: "aprendiz" };
 
 export default function Usuarios() {
-  const [usuarios, setUsuarios] = useState([]);
+  const [usuarios, setUsuarios] = useState(null);
   const [filtro, setFiltro] = useState({ rol: "", estado: "", buscar: "" });
   const [modal, setModal] = useState(null); // 'crear' | 'masiva'
   const [f, setF] = useState(VACIO);
@@ -14,7 +15,7 @@ export default function Usuarios() {
 
   const cargar = () => {
     const q = new URLSearchParams(Object.entries(filtro).filter(([, v]) => v)).toString();
-    api(`/usuarios?${q}`).then(setUsuarios).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
+    api(`/usuarios?${q}`).then(setUsuarios).catch((e) => { setUsuarios([]); setMensaje({ tipo: "error", texto: e.message }); });
   };
   useEffect(() => { cargar(); }, [filtro]);
 
@@ -120,7 +121,7 @@ export default function Usuarios() {
       <table className="tabla">
         <thead><tr><th>Nombre</th><th>Documento</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
         <tbody>
-          {usuarios.map((u) => (
+          {(usuarios || []).map((u) => (
             <tr key={u.id_usuario}>
               <td>{u.nombres} {u.apellidos}</td>
               <td>{u.documento}</td>
@@ -135,7 +136,8 @@ export default function Usuarios() {
               </td>
             </tr>
           ))}
-          {!usuarios.length && <tr><td colSpan={6}><div className="vacio">No hay usuarios con esos filtros.</div></td></tr>}
+          {usuarios === null && <tr><td colSpan={6}><Cargando /></td></tr>}
+          {usuarios?.length === 0 && <tr><td colSpan={6}><div className="vacio">No hay usuarios con esos filtros.</div></td></tr>}
         </tbody>
       </table>
 

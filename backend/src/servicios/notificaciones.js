@@ -14,4 +14,10 @@ async function marcarComoLeida(idNotificacion, idUsuario) {
   emitirNotificacionNueva(idUsuario);
 }
 
-module.exports = { obtenerNotificaciones, obtenerContador, marcarComoLeida };
+async function marcarTodasComoLeidas(idUsuario) {
+  const marcadas = await repositorio.marcarTodasLeidas(idUsuario);
+  if (marcadas) emitirNotificacionNueva(idUsuario); // baja el numerito del menu al instante
+  return marcadas;
+}
+
+module.exports = { obtenerNotificaciones, obtenerContador, marcarComoLeida, marcarTodasComoLeidas };

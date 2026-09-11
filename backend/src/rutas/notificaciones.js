@@ -8,6 +8,7 @@ router.use(autenticar);
 
 router.get("/", controlador.listar);
 router.get("/contador", controlador.contador);
+router.patch("/leidas", controlador.marcarTodasLeidas);
 router.patch("/:id/leida", controlador.marcarLeida);
 
 module.exports = router;

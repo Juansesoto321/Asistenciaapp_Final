@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { api } from "../servicios/api";
 import Icono from "../componentes/Iconos.jsx";
+import { useConfirmar } from "../componentes/Confirmar.jsx";
 import { useAuth } from "../contexto/AuthContext.jsx";
 
 const VACIO = { nombre: "", id_ficha: "", estado: "", fecha_inicio: "", fecha_fin: "" };
 
 export default function Reportes() {
   const { sesion } = useAuth();
+  const { pedirTexto } = useConfirmar();
   const [filtros, setFiltros] = useState(VACIO);
   const [fichas, setFichas] = useState([]);
   const [resultados, setResultados] = useState(null);
@@ -14,8 +16,8 @@ export default function Reportes() {
   const [mensaje, setMensaje] = useState(null);
 
   useEffect(() => {
-    api("/fichas").then(setFichas);
-    api("/reportes/busquedas-guardadas").then(setGuardadas);
+    api("/fichas").then(setFichas).catch(() => {});
+    api("/reportes/busquedas-guardadas").then(setGuardadas).catch(() => {});
   }, []);
 
   const query = () => new URLSearchParams(Object.entries(filtros).filter(([, v]) => v)).toString();
@@ -29,6 +31,7 @@ export default function Reportes() {
     const r = await fetch(`/api/reportes/exportar?${query()}`, {
       headers: { Authorization: `Bearer ${sesion.token}` },
     });
+    if (!r.ok) return setMensaje({ tipo: "error", texto: "No se pudo exportar el reporte" });
     const blob = await r.blob();
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -37,10 +40,18 @@ export default function Reportes() {
   }
 
   async function guardar() {
-    const nombre = prompt("Nombre para esta búsqueda guardada:");
+    const nombre = await pedirTexto({
+      titulo: "Guardar búsqueda",
+      mensaje: "Ponle un nombre para volver a cargar estos filtros después.",
+      placeholder: "Ej.: Ausencias de la ficha 3311983 en septiembre",
+      textoConfirmar: "Guardar",
+    });
     if (!nombre) return;
-    await api("/reportes/busquedas-guardadas", { method: "POST", body: { nombre, filtros } });
-    setGuardadas(await api("/reportes/busquedas-guardadas"));
+    try {
+      await api("/reportes/busquedas-guardadas", { method: "POST", body: { nombre, filtros } });
+      setGuardadas(await api("/reportes/busquedas-guardadas"));
+      setMensaje({ tipo: "exito", texto: `Búsqueda "${nombre}" guardada` });
+    } catch (e) { setMensaje({ tipo: "error", texto: e.message }); }
   }
 
   return (

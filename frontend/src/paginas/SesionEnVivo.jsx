@@ -3,557 +3,249 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import { api, obtenerSesion } from "../servicios/api";
 import IconoHuella from "../componentes/IconoHuella.jsx";
+import Cargando from "../componentes/Cargando.jsx";
+import { useConfirmar } from "../componentes/Confirmar.jsx";
+
+const textoPlazo = (horas) => (horas % 24 === 0 ? `${horas / 24} día(s)` : `${horas} horas`);
 
 export default function SesionEnVivo() {
   const { id } = useParams();
   const navegar = useNavigate();
+  const { confirmar } = useConfirmar();
   const rol = obtenerSesion().usuario.rol;
 
   const [sesion, setSesion] = useState(null);
   const [alerta, setAlerta] = useState(null);
   const [modal, setModal] = useState(null);
-  const [manual, setManual] = useState({
-    estado: "presente",
-    motivo: "",
-  });
+  const [manual, setManual] = useState({ estado: "presente", motivo: "" });
   const [mensaje, setMensaje] = useState(null);
   const [plazo, setPlazo] = useState(72);
   const [cerrando, setCerrando] = useState(false);
+  const temporizadorAlerta = useRef(null);
 
-  const socketRef = useRef(null);
-
-  const cargar = () => {
-    api("/sesiones/" + id)
-      .then((datos) => {
-        setSesion(datos);
-      })
-      .catch((e) => {
-        setMensaje({
-          tipo: "error",
-          texto: e.message,
-        });
-      });
-  };
+  const cargar = () =>
+    api(`/sesiones/${id}`)
+      .then(setSesion)
+      .catch((e) => setMensaje({ tipo: "error", texto: e.message }));
 
   useEffect(() => {
     cargar();
-
     api("/configuracion")
-      .then((configuracion) => {
-        if (
-          configuracion &&
-          configuracion.horas_justificacion
-        ) {
-          setPlazo(configuracion.horas_justificacion);
-        }
-      })
-      .catch(() => {
-        setPlazo(72);
-      });
+      .then((c) => c?.horas_justificacion && setPlazo(Number(c.horas_justificacion)))
+      .catch(() => {});
 
     const socket = io();
-
-    socketRef.current = socket;
-
     socket.emit("unirse_sesion", id);
 
-    socket.on("marcacion", (marcacion) => {
-      setSesion((actual) => {
-        if (!actual) {
-          return actual;
-        }
-
-        return {
-          ...actual,
-          aprendices: actual.aprendices.map((aprendiz) => {
-            if (
-              aprendiz.id_usuario !==
-              marcacion.id_aprendiz
-            ) {
-              return aprendiz;
-            }
-
-            return {
-              ...aprendiz,
-              estado: marcacion.estado,
-              hora_marca: marcacion.hora_marca,
-              metodo: marcacion.metodo,
-            };
-          }),
-        };
+    // Cada marcación del lector actualiza la fila del aprendiz sin recargar (CU-14)
+    socket.on("marcacion", (m) => {
+      setSesion((actual) => actual && {
+        ...actual,
+        aprendices: actual.aprendices.map((a) =>
+          a.id_usuario === m.id_aprendiz
+            ? { ...a, estado: m.estado, hora_marca: m.hora_marca, metodo: m.metodo }
+            : a
+        ),
       });
     });
 
     socket.on("huella_no_reconocida", () => {
-      setAlerta(
-        "Huella no reconocida en el lector. Si el aprendiz insiste, usa el registro manual."
-      );
-
-      setTimeout(() => {
-        setAlerta(null);
-      }, 8000);
+      setAlerta("Huella no reconocida en el lector. Si el aprendiz insiste, usa el registro manual.");
+      clearTimeout(temporizadorAlerta.current);
+      temporizadorAlerta.current = setTimeout(() => setAlerta(null), 8000);
     });
 
     return () => {
+      clearTimeout(temporizadorAlerta.current);
       socket.emit("salir_sesion", id);
       socket.disconnect();
     };
   }, [id]);
 
   async function guardarManual() {
-    if (!modal) {
-      return;
-    }
-
-    if (!manual.motivo.trim()) {
-      setMensaje({
-        tipo: "error",
-        texto: "Debes ingresar una justificación.",
-      });
-
-      return;
-    }
-
+    if (!manual.motivo.trim()) return setMensaje({ tipo: "error", texto: "Debes ingresar una justificación." });
     try {
-      const respuesta = await api(
-        "/sesiones/" + id + "/asistencia-manual",
-        {
-          method: "POST",
-          body: {
-            id_aprendiz: modal.id_usuario,
-            estado: manual.estado,
-            motivo: manual.motivo,
-          },
-        }
-      );
-
-      setMensaje({
-        tipo: "exito",
-        texto: respuesta.mensaje,
+      const r = await api(`/sesiones/${id}/asistencia-manual`, {
+        method: "POST",
+        body: { id_aprendiz: modal.id_usuario, estado: manual.estado, motivo: manual.motivo },
       });
-
+      setMensaje({ tipo: "exito", texto: r.mensaje });
       setModal(null);
-
-      setManual({
-        estado: "presente",
-        motivo: "",
-      });
-
+      setManual({ estado: "presente", motivo: "" });
       cargar();
     } catch (e) {
-      setMensaje({
-        tipo: "error",
-        texto: e.message,
-      });
+      setMensaje({ tipo: "error", texto: e.message });
     }
   }
 
   async function cerrar() {
-    if (cerrando) {
-      return;
-    }
-
-    const horas = Number(plazo);
-
-    const texto =
-      horas % 24 === 0
-        ? horas / 24 + " día(s)"
-        : horas + " horas";
-
-    const confirmar = window.confirm(
-      "Al cerrar, los aprendices sin marca quedarán AUSENTES y recibirán el enlace de justificación (" +
-        texto +
-        "). ¿Cerrar la sesión?"
-    );
-
-    if (!confirmar) {
-      return;
-    }
+    if (cerrando) return;
+    const sinMarca = sesion.aprendices.filter((a) => !a.estado).length;
+    const ok = await confirmar({
+      titulo: "¿Cerrar la sesión de clase?",
+      mensaje: sinMarca
+        ? `${sinMarca} aprendiz(es) sin marca quedarán AUSENTES y recibirán por correo el enlace para justificar (plazo: ${textoPlazo(plazo)}).`
+        : "Todos los aprendices ya tienen registro. La sesión quedará cerrada.",
+      textoConfirmar: "Cerrar sesión",
+      peligro: true,
+    });
+    if (!ok) return;
 
     setCerrando(true);
     setMensaje(null);
-
     try {
-      await new Promise((resolve) =>
-        setTimeout(resolve, 800)
-      );
-
-      const respuesta = await api(
-        "/sesiones/" + id + "/cerrar",
-        {
-          method: "POST",
-        }
-      );
-
-      setMensaje({
-        tipo: "exito",
-        texto: respuesta.mensaje,
-      });
-
+      const r = await api(`/sesiones/${id}/cerrar`, { method: "POST" });
+      setMensaje({ tipo: "exito", texto: r.mensaje });
       await cargar();
     } catch (e) {
-      setMensaje({
-        tipo: "error",
-        texto: e.message,
-      });
+      setMensaje({ tipo: "error", texto: e.message });
     } finally {
       setCerrando(false);
     }
   }
 
   async function eliminar() {
-    if (!confirm("Esto elimina PERMANENTEMENTE esta sesión, con toda su asistencia y justificaciones asociadas. No se puede deshacer. ¿Continuar?")) return;
+    const ok = await confirmar({
+      titulo: "¿Eliminar esta sesión?",
+      mensaje: "Se borrará permanentemente, junto con toda su asistencia y las justificaciones asociadas. No se puede deshacer.",
+      textoConfirmar: "Eliminar definitivamente",
+      peligro: true,
+    });
+    if (!ok) return;
     try {
       await api(`/sesiones/${id}`, { method: "DELETE" });
       navegar("/sesiones");
-    } catch (e) { setMensaje({ tipo: "error", texto: e.message }); }
+    } catch (e) {
+      setMensaje({ tipo: "error", texto: e.message });
+    }
   }
 
   if (!sesion) {
-    return (
-      <div className="vacio">
-        Cargando sesión…
-      </div>
-    );
+    return mensaje
+      ? <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>
+      : <Cargando texto="Cargando sesión…" />;
   }
 
-  const marcados = sesion.aprendices.filter(
-    (aprendiz) => aprendiz.estado
-  ).length;
+  const marcados = sesion.aprendices.filter((a) => a.estado).length;
 
   return (
     <>
       <div className="cabecera-pagina">
         <div>
-          <Link
-            to="/sesiones"
-            style={{ fontSize: 13.5 }}
-          >
-            ← Sesiones de hoy
-          </Link>
-
+          <Link to="/sesiones" style={{ fontSize: 13.5 }}>← Sesiones de hoy</Link>
           <h1>
-            {sesion.estado === "activa" && (
-              <span className="pulso" />
-            )}
-
-            Ficha {sesion.numero_ficha} · Ambiente{" "}
-            {sesion.numero_ambiente}
+            {sesion.estado === "activa" && <span className="pulso" />}
+            Ficha {sesion.numero_ficha} · Ambiente {sesion.numero_ambiente}
           </h1>
-
           <p>
-            {sesion.programa} ·{" "}
-            {new Date(sesion.fecha).toLocaleDateString(
-              "es-CO"
-            )}{" "}
-            · {sesion.hora_inicio.slice(0, 5)}–
-            {sesion.hora_fin.slice(0, 5)} ·{" "}
-            <b>
-              {marcados}/{sesion.aprendices.length}
-            </b>{" "}
-            registrados
+            {sesion.programa} · {new Date(sesion.fecha).toLocaleDateString("es-CO")} ·{" "}
+            {sesion.hora_inicio.slice(0, 5)}–{sesion.hora_fin.slice(0, 5)} ·{" "}
+            <b>{marcados}/{sesion.aprendices.length}</b> registrados
           </p>
         </div>
-
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           {sesion.estado === "activa" ? (
-            <button
-              className="boton peligro"
-              onClick={cerrar}
-              disabled={cerrando}
-            >
-              {cerrando
-                ? "⏳ Cerrando sesión..."
-                : "⏹ Cerrar sesión de clase"}
+            <button className="boton peligro" onClick={cerrar} disabled={cerrando}>
+              {cerrando ? "Cerrando…" : "Cerrar sesión de clase"}
             </button>
           ) : (
-            <span className="insignia cerrada">
-              Sesión cerrada
-            </span>
+            <span className="insignia cerrada">Sesión cerrada</span>
           )}
-          {["coordinador", "programador"].includes(rol) &&
-            <button className="boton mini suave" onClick={eliminar} title="Borra la sesión y su asistencia permanentemente">🗑 Eliminar sesión</button>}
+          {["coordinador", "programador"].includes(rol) && (
+            <button className="boton mini suave" onClick={eliminar} title="Borra la sesión y su asistencia permanentemente">
+              Eliminar sesión
+            </button>
+          )}
         </div>
       </div>
 
-      {alerta && (
-        <div className="mensaje error">
-          ⚠️ {alerta}
-        </div>
-      )}
-
-      {mensaje && (
-        <div className={"mensaje " + mensaje.tipo}>
-          {mensaje.texto}
-        </div>
-      )}
+      {alerta && <div className="mensaje error" role="alert">{alerta}</div>}
+      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
 
       <table className="tabla">
         <thead>
-          <tr>
-            <th>Aprendiz</th>
-            <th>Documento</th>
-            <th>Huella</th>
-            <th>Estado</th>
-            <th>Hora</th>
-            <th>Método</th>
-            <th></th>
-          </tr>
+          <tr><th>Aprendiz</th><th>Documento</th><th>Huella</th><th>Estado</th><th>Hora</th><th>Método</th><th></th></tr>
         </thead>
-
         <tbody>
-          {sesion.aprendices.map((aprendiz) => (
-            <tr key={aprendiz.id_usuario}>
+          {sesion.aprendices.map((a) => (
+            <tr key={a.id_usuario}>
+              <td>{a.nombres} {a.apellidos}</td>
+              <td>{a.documento}</td>
               <td>
-                {aprendiz.nombres}{" "}
-                {aprendiz.apellidos}
-              </td>
-
-              <td>{aprendiz.documento}</td>
-
-              <td>
-                {aprendiz.tiene_huella ? (
+                {a.tiene_huella ? (
                   <IconoHuella title="Huella registrada" />
                 ) : (
-                  <span title="Sin huella registrada: usar manual">
-                    ✋
+                  <span style={{ color: "var(--tinta-suave)", fontSize: 12.5 }} title="Sin huella registrada: usar registro manual">
+                    Sin huella
                   </span>
                 )}
               </td>
-
               <td>
-                {aprendiz.estado ? (
-                  <span
-                    className={
-                      "insignia " + aprendiz.estado
-                    }
-                  >
-                    {aprendiz.estado}
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      color: "var(--tinta-suave)",
-                    }}
-                  >
-                    esperando…
-                  </span>
-                )}
+                {a.estado
+                  ? <span className={`insignia ${a.estado}`}>{a.estado}</span>
+                  : <span style={{ color: "var(--tinta-suave)" }}>esperando…</span>}
               </td>
-
               <td>
-                {aprendiz.hora_marca
-                  ? new Date(
-                      aprendiz.hora_marca
-                    ).toLocaleTimeString("es-CO", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
+                {a.hora_marca
+                  ? new Date(a.hora_marca).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
                   : "—"}
               </td>
-
-              <td>
-                {aprendiz.metodo ? (
-                  <span
-                    className={
-                      "insignia " + aprendiz.metodo
-                    }
-                  >
-                    {aprendiz.metodo}
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </td>
-
+              <td>{a.metodo ? <span className={`insignia ${a.metodo}`}>{a.metodo}</span> : "—"}</td>
               <td>
                 <button
                   className="boton mini suave"
-                  onClick={() => {
-                    setModal(aprendiz);
-
-                    setManual({
-                      estado:
-                        aprendiz.estado ||
-                        "presente",
-                      motivo: "",
-                    });
-                  }}
                   disabled={cerrando}
+                  onClick={() => { setModal(a); setManual({ estado: a.estado || "presente", motivo: "" }); }}
                 >
-                  ✍ Manual
+                  Registro manual
                 </button>
               </td>
             </tr>
           ))}
+          {!sesion.aprendices.length && (
+            <tr><td colSpan={7}><div className="vacio">No hay aprendices matriculados en esta ficha.</div></td></tr>
+          )}
         </tbody>
       </table>
 
       {modal && (
-        <div
-          className="superposicion"
-          onClick={() => setModal(null)}
-        >
-          <div
-            className="modal"
-            onClick={(evento) =>
-              evento.stopPropagation()
-            }
-          >
-            <h2>
-              Registro manual · {modal.nombres}{" "}
-              {modal.apellidos}
-            </h2>
-
-            <p
-              style={{
-                color: "var(--tinta-suave)",
-                fontSize: 13.5,
-              }}
-            >
-              Para casos excepcionales: lesión, lector
-              caído o huella no reconocida. Queda trazado
-              en auditoría.
+        <div className="superposicion" onClick={() => setModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Registro manual · {modal.nombres} {modal.apellidos}</h2>
+            <p style={{ color: "var(--tinta-suave)", fontSize: 13.5 }}>
+              Para casos excepcionales: lesión, lector caído o huella no reconocida. Queda trazado en auditoría.
             </p>
-
             <label>Estado</label>
-
-            <select
-              value={manual.estado}
-              onChange={(evento) =>
-                setManual({
-                  ...manual,
-                  estado: evento.target.value,
-                })
-              }
-            >
-              <option value="presente">
-                Presente
-              </option>
-
-              <option value="tardanza">
-                Tardanza
-              </option>
-
-              <option value="ausente">
-                Ausente
-              </option>
-
-              <option value="justificada">
-                Justificada
-              </option>
+            <select value={manual.estado} onChange={(e) => setManual({ ...manual, estado: e.target.value })}>
+              <option value="presente">Presente</option>
+              <option value="tardanza">Tardanza</option>
+              <option value="ausente">Ausente</option>
+              <option value="justificada">Justificada</option>
             </select>
-
-            <label>
-              Justificación del registro manual
-              (obligatoria)
-            </label>
-
+            <label>Justificación del registro manual (obligatoria)</label>
             <textarea
               rows={3}
               value={manual.motivo}
-              onChange={(evento) =>
-                setManual({
-                  ...manual,
-                  motivo: evento.target.value,
-                })
-              }
+              onChange={(e) => setManual({ ...manual, motivo: e.target.value })}
               placeholder="Ej.: lesión en la mano derecha, el lector no reconoció la huella tras 3 intentos…"
             />
-
             <div className="acciones-modal">
-              <button
-                className="boton suave"
-                onClick={() => setModal(null)}
-              >
-                Cancelar
-              </button>
-
-              <button
-                className="boton"
-                disabled={!manual.motivo.trim()}
-                onClick={guardarManual}
-              >
-                Guardar registro
-              </button>
+              <button className="boton suave" onClick={() => setModal(null)}>Cancelar</button>
+              <button className="boton" disabled={!manual.motivo.trim()} onClick={guardarManual}>Guardar registro</button>
             </div>
           </div>
         </div>
       )}
 
       {cerrando && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.65)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-          }}
-        >
-          <div
-            style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "35px 45px",
-              textAlign: "center",
-              minWidth: "300px",
-              boxShadow:
-                "0 10px 40px rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            <div
-              style={{
-                width: "45px",
-                height: "45px",
-                border: "4px solid #ddd",
-                borderTopColor: "#333",
-                borderRadius: "50%",
-                margin: "0 auto 20px",
-                animation:
-                  "girar 0.8s linear infinite",
-              }}
-            />
-
-            <h2
-              style={{
-                margin: "0 0 10px",
-              }}
-            >
-              Cerrando sesión
-            </h2>
-
-            <p
-              style={{
-                margin: 0,
-                color: "#666",
-              }}
-            >
-              Espere un momento, estamos procesando
-              el cierre de la clase...
-            </p>
+        <div className="superposicion bloqueante" role="status">
+          <div className="aviso-proceso">
+            <span className="giro grande" aria-hidden="true" />
+            <h2>Cerrando sesión</h2>
+            <p>Marcando ausencias y enviando los enlaces de justificación…</p>
           </div>
         </div>
       )}
-
-      <style>
-        {`
-          @keyframes girar {
-            from {
-              transform: rotate(0deg);
-            }
-
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}
-      </style>
     </>
   );
 }

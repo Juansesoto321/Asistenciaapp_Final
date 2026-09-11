@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../servicios/api";
+import Cargando from "../componentes/Cargando.jsx";
 
 const PERIODO_VACIO = { nombre: "", fecha_inicio: "", fecha_fin: "" };
 
@@ -9,8 +10,11 @@ export default function Configuracion() {
   const [nuevoPeriodo, setNuevoPeriodo] = useState(PERIODO_VACIO);
   const [mensaje, setMensaje] = useState(null);
 
-  const cargarPeriodos = () => api("/periodos").then(setPeriodos);
-  useEffect(() => { api("/configuracion").then(setConf); cargarPeriodos(); }, []);
+  const cargarPeriodos = () => api("/periodos").then(setPeriodos).catch(() => {});
+  useEffect(() => {
+    api("/configuracion").then(setConf).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
+    cargarPeriodos();
+  }, []);
 
   async function guardar() {
     try {
@@ -30,7 +34,7 @@ export default function Configuracion() {
     } catch (e) { setMensaje({ tipo: "error", texto: e.message }); }
   }
 
-  if (!conf) return <div className="vacio">Cargando…</div>;
+  if (!conf) return mensaje ? <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div> : <Cargando />;
   return (
     <>
       <div className="cabecera-pagina">

@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { api } from "../servicios/api";
 import { useAuth } from "../contexto/AuthContext.jsx";
+import Cargando from "../componentes/Cargando.jsx";
 
 export default function Soporte() {
   const { sesion } = useAuth();
   const rol = sesion.usuario.rol;
-  const [tickets, setTickets] = useState([]);
+  const [tickets, setTickets] = useState(null);
   const [f, setF] = useState({ tipo: "huella", descripcion: "" });
   const [mensaje, setMensaje] = useState(null);
 
-  const cargar = () => api("/soporte").then(setTickets);
+  const cargar = () =>
+    api("/soporte").then(setTickets).catch((e) => { setTickets([]); setMensaje({ tipo: "error", texto: e.message }); });
   useEffect(() => { cargar(); }, []);
 
   async function crear() {
@@ -21,8 +23,10 @@ export default function Soporte() {
   }
 
   async function cambiarEstado(t, estado) {
-    await api(`/soporte/${t.id_ticket}`, { method: "PATCH", body: { estado } });
-    cargar();
+    try {
+      await api(`/soporte/${t.id_ticket}`, { method: "PATCH", body: { estado } });
+      cargar();
+    } catch (e) { setMensaje({ tipo: "error", texto: e.message }); }
   }
 
   return (
@@ -48,7 +52,7 @@ export default function Soporte() {
       <table className="tabla">
         <thead><tr><th>#</th>{["coordinador", "programador"].includes(rol) && <th>Usuario</th>}<th>Tipo</th><th>Descripción</th><th>Estado</th>{["coordinador", "programador"].includes(rol) && <th></th>}</tr></thead>
         <tbody>
-          {tickets.map((t) => (
+          {(tickets || []).map((t) => (
             <tr key={t.id_ticket}>
               <td><b>{t.id_ticket}</b></td>
               {["coordinador", "programador"].includes(rol) && <td>{t.usuario}</td>}
@@ -63,7 +67,8 @@ export default function Soporte() {
               )}
             </tr>
           ))}
-          {!tickets.length && <tr><td colSpan={6}><div className="vacio">No hay tickets registrados.</div></td></tr>}
+          {tickets === null && <tr><td colSpan={6}><Cargando /></td></tr>}
+          {tickets?.length === 0 && <tr><td colSpan={6}><div className="vacio">No hay tickets registrados.</div></td></tr>}
         </tbody>
       </table>
     </>

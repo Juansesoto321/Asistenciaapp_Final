@@ -3,12 +3,15 @@ import { useParams, Link } from "react-router-dom";
 import { api } from "../servicios/api";
 import { useAuth } from "../contexto/AuthContext.jsx";
 import IconoHuella from "../componentes/IconoHuella.jsx";
+import Cargando from "../componentes/Cargando.jsx";
+import { useConfirmar } from "../componentes/Confirmar.jsx";
 
 export default function DetalleFicha() {
   const { id } = useParams();
   const { sesion } = useAuth();
+  const { confirmar } = useConfirmar();
   const rol = sesion.usuario.rol;
-  const [matriculas, setMatriculas] = useState([]);
+  const [matriculas, setMatriculas] = useState(null);
   const [disponibles, setDisponibles] = useState([]);
   const [seleccion, setSeleccion] = useState([]);
   const [modal, setModal] = useState(null); // 'matricular' | {enrolar: aprendiz}
@@ -17,12 +20,12 @@ export default function DetalleFicha() {
   const [lecturas, setLecturas] = useState([]);
   const [mensaje, setMensaje] = useState(null);
 
-  const cargar = () => api(`/fichas/${id}/matriculas`).then(setMatriculas).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
+  const cargar = () => api(`/fichas/${id}/matriculas`).then(setMatriculas).catch((e) => { setMatriculas([]); setMensaje({ tipo: "error", texto: e.message }); });
   useEffect(() => { cargar(); }, [id]);
 
   async function abrirMatricular() {
     const todos = await api("/usuarios?rol=aprendiz&estado=activo");
-    const ya = new Set(matriculas.map((m) => m.id_usuario));
+    const ya = new Set((matriculas || []).map((m) => m.id_usuario));
     setDisponibles(todos.filter((u) => !ya.has(u.id_usuario)));
     setSeleccion([]); setModal("matricular");
   }
@@ -63,7 +66,13 @@ export default function DetalleFicha() {
   }
 
   async function eliminarHuella(aprendiz) {
-    if (!confirm(`¿Eliminar permanentemente los datos biométricos de ${aprendiz.nombres}? (Ley 1581/2012)`)) return;
+    const ok = await confirmar({
+      titulo: "¿Eliminar los datos biométricos?",
+      mensaje: `La plantilla de huella de ${aprendiz.nombres} se borrará permanentemente (derecho al borrado, Ley 1581/2012). Su historial de asistencia se conserva.`,
+      textoConfirmar: "Eliminar huella",
+      peligro: true,
+    });
+    if (!ok) return;
     try {
       const r = await api(`/biometria/${aprendiz.id_usuario}`, { method: "DELETE" });
       setMensaje({ tipo: "exito", texto: r.mensaje }); cargar();
@@ -85,7 +94,7 @@ export default function DetalleFicha() {
       <table className="tabla">
         <thead><tr><th>Aprendiz</th><th>Documento</th><th>Correo</th><th>Huella</th><th>Matrícula</th><th>Acciones</th></tr></thead>
         <tbody>
-          {matriculas.map((m) => (
+          {(matriculas || []).map((m) => (
             <tr key={m.id_matricula}>
               <td>{m.nombres} {m.apellidos}</td>
               <td>{m.documento}</td>
@@ -102,7 +111,8 @@ export default function DetalleFicha() {
               </td>
             </tr>
           ))}
-          {!matriculas.length && <tr><td colSpan={6}><div className="vacio">No hay aprendices matriculados en esta ficha.</div></td></tr>}
+          {matriculas === null && <tr><td colSpan={6}><Cargando /></td></tr>}
+          {matriculas?.length === 0 && <tr><td colSpan={6}><div className="vacio">No hay aprendices matriculados en esta ficha.</div></td></tr>}
         </tbody>
       </table>
 

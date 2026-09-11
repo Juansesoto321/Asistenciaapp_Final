@@ -2,25 +2,27 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../servicios/api";
 import { useAuth } from "../contexto/AuthContext.jsx";
+import Cargando from "../componentes/Cargando.jsx";
 
 const VACIA = { numero_ficha: "", programa: "", jornada: "mañana", fecha_inicio: "", fecha_fin: "", id_periodo: "", id_instructor: "" };
 
 export default function Fichas() {
   const { sesion } = useAuth();
   const rol = sesion.usuario.rol;
-  const [fichas, setFichas] = useState([]);
+  const [fichas, setFichas] = useState(null);
   const [periodos, setPeriodos] = useState([]);
   const [instructores, setInstructores] = useState([]);
   const [modal, setModal] = useState(false);
   const [f, setF] = useState(VACIA);
   const [mensaje, setMensaje] = useState(null);
 
-  const cargar = () => api("/fichas").then(setFichas).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
+  const cargar = () =>
+    api("/fichas").then(setFichas).catch((e) => { setFichas([]); setMensaje({ tipo: "error", texto: e.message }); });
   useEffect(() => {
     cargar();
     if (["coordinador", "programador"].includes(rol)) {
-      api("/periodos").then(setPeriodos);
-      api("/instructores").then(setInstructores);
+      api("/periodos").then(setPeriodos).catch(() => {});
+      api("/instructores").then(setInstructores).catch(() => {});
     }
   }, []);
 
@@ -45,7 +47,7 @@ export default function Fichas() {
       <table className="tabla">
         <thead><tr><th>Ficha</th><th>Programa</th><th>Jornada</th><th>Instructor</th><th>Aprendices</th><th>Estado</th><th></th></tr></thead>
         <tbody>
-          {fichas.map((x) => (
+          {(fichas || []).map((x) => (
             <tr key={x.id_ficha}>
               <td><b>{x.numero_ficha}</b></td>
               <td>{x.programa}</td>
@@ -56,7 +58,8 @@ export default function Fichas() {
               <td><Link className="boton mini suave" to={`/fichas/${x.id_ficha}`}>Ver detalles →</Link></td>
             </tr>
           ))}
-          {!fichas.length && <tr><td colSpan={7}><div className="vacio">Aún no hay fichas registradas.</div></td></tr>}
+          {fichas === null && <tr><td colSpan={7}><Cargando /></td></tr>}
+          {fichas?.length === 0 && <tr><td colSpan={7}><div className="vacio">Aún no hay fichas registradas.</div></td></tr>}
         </tbody>
       </table>
 

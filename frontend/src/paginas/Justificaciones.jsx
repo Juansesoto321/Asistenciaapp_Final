@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../servicios/api";
+import Cargando from "../componentes/Cargando.jsx";
 
 function textoPlazo(horas) {
   const h = Number(horas || 72);
@@ -16,7 +17,7 @@ const ETIQUETA_TIPO = {
 };
 
 export default function Justificaciones() {
-  const [lista, setLista] = useState([]);
+  const [lista, setLista] = useState(null);
   const [detalle, setDetalle] = useState(null);
   const [mensaje, setMensaje] = useState(null);
   const [plazo, setPlazo] = useState(72);
@@ -27,17 +28,15 @@ export default function Justificaciones() {
   const cargar = () =>
     api("/justificaciones")
       .then(setLista)
-      .catch((e) =>
-        setMensaje({
-          tipo: "error",
-          texto: e.message,
-        })
-      );
+      .catch((e) => {
+        setLista([]);
+        setMensaje({ tipo: "error", texto: e.message });
+      });
 
   useEffect(() => {
     cargar();
 
-    api("/configuracion").then((c) => setPlazo(c.horas_justificacion));
+    api("/configuracion").then((c) => setPlazo(c.horas_justificacion)).catch(() => {});
   }, []);
 
   function abrir(j) {
@@ -116,6 +115,7 @@ export default function Justificaciones() {
         </div>
       )}
 
+      {lista === null ? <Cargando /> : (
       <table className="tabla">
         <thead>
           <tr>
@@ -180,6 +180,7 @@ export default function Justificaciones() {
           )}
         </tbody>
       </table>
+      )}
 
       {detalle && (
         <div
@@ -244,7 +245,7 @@ export default function Justificaciones() {
                 <div
                   className="tarjeta"
                   style={{
-                    background: "var(--rojo-suave)",
+                    background: detalle.estado === "rechazada" ? "var(--rojo-suave)" : "var(--verde-suave)",
                   }}
                 >
                   {detalle.observacion_validacion}

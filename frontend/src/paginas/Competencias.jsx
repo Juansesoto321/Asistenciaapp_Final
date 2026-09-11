@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../servicios/api";
 import { useAuth } from "../contexto/AuthContext.jsx";
+import { useConfirmar } from "../componentes/Confirmar.jsx";
 
 const COMPETENCIA_VACIA = { codigo: "", nombre: "" };
 const RAP_VACIO = { id_competencia: "", codigo: "", nombre: "" };
@@ -12,6 +13,7 @@ const EJEMPLO_CSV =
 
 export default function Competencias() {
   const { sesion } = useAuth();
+  const { confirmar } = useConfirmar();
   const rol = sesion.usuario.rol;
   const puedeEditar = ["coordinador", "programador"].includes(rol);
 
@@ -52,7 +54,13 @@ export default function Competencias() {
   }
 
   async function eliminarCompetencia(x) {
-    if (!confirm(`¿Eliminar la competencia "${x.nombre}" y sus resultados de aprendizaje?`)) return;
+    const ok = await confirmar({
+      titulo: "¿Eliminar la competencia?",
+      mensaje: `Se eliminará "${x.nombre}" junto con sus resultados de aprendizaje y temáticas.`,
+      textoConfirmar: "Eliminar competencia",
+      peligro: true,
+    });
+    if (!ok) return;
     try {
       await api(`/competencias/${x.id_competencia}`, { method: "DELETE" });
       setMensaje({ tipo: "exito", texto: "Competencia eliminada" }); cargar();
@@ -69,7 +77,13 @@ export default function Competencias() {
   }
 
   async function eliminarRap(rap) {
-    if (!confirm(`¿Eliminar el resultado ${rap.codigo}?`)) return;
+    const ok = await confirmar({
+      titulo: "¿Eliminar el resultado de aprendizaje?",
+      mensaje: `Se eliminará el resultado ${rap.codigo} junto con sus temáticas.`,
+      textoConfirmar: "Eliminar resultado",
+      peligro: true,
+    });
+    if (!ok) return;
     try {
       await api(`/competencias/raps/${rap.id_rap}`, { method: "DELETE" });
       setMensaje({ tipo: "exito", texto: "Resultado eliminado" }); cargar();

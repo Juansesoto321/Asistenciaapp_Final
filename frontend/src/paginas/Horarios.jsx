@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../servicios/api";
 import { useAuth } from "../contexto/AuthContext.jsx";
+import { useConfirmar } from "../componentes/Confirmar.jsx";
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 // Orden de semana laboral (lunes a domingo), aunque dia_semana en BD sea 0=domingo
@@ -40,6 +41,7 @@ function ocurreEn(horario, fecha) {
 
 export default function Horarios() {
   const { sesion } = useAuth();
+  const { confirmar } = useConfirmar();
   const rol = sesion.usuario.rol;
   const puedeEditar = ["coordinador", "programador"].includes(rol);
   const esInstructor = rol === "instructor";
@@ -171,7 +173,13 @@ export default function Horarios() {
   }
 
   async function eliminar(id) {
-    if (!confirm("¿Eliminar este horario?")) return;
+    const ok = await confirmar({
+      titulo: "¿Eliminar este horario?",
+      mensaje: "Dejará de aparecer en el calendario. Si ya tiene sesiones de clase registradas, no se podrá eliminar.",
+      textoConfirmar: "Eliminar horario",
+      peligro: true,
+    });
+    if (!ok) return;
     try {
       await api(`/horarios/${id}`, { method: "DELETE" });
       setDetalle(null); cargar();

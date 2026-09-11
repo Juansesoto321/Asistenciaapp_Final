@@ -37,7 +37,7 @@ export default function IniciarSesion() {
         <p className="subtitulo">Control de asistencia con huella digital · SENA</p>
         {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
         <label>Correo institucional</label>
-        <input value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="usuario@soy.sena.edu.co"
+        <input value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="tu.correo@sena.edu.co"
                onKeyDown={(e) => e.key === "Enter" && enviar()} />
         {!recuperando && (<>
           <label>Contraseña</label>

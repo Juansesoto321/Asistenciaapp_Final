@@ -23,4 +23,12 @@ async function marcarLeida(idNotificacion, idUsuario) {
   );
 }
 
-module.exports = { listarPorUsuario, contarPendientes, marcarLeida };
+async function marcarTodasLeidas(idUsuario) {
+  const r = await pool.query(
+    "UPDATE notificacion SET leida = TRUE WHERE id_usuario = $1 AND leida = FALSE",
+    [idUsuario]
+  );
+  return r.rowCount;
+}
+
+module.exports = { listarPorUsuario, contarPendientes, marcarLeida, marcarTodasLeidas };

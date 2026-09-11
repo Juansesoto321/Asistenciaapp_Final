@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../servicios/api";
+import Cargando from "../componentes/Cargando.jsx";
 
 export default function Ambientes() {
-  const [ambientes, setAmbientes] = useState([]);
+  const [ambientes, setAmbientes] = useState(null);
   const [periodos, setPeriodos] = useState([]);
   const [modal, setModal] = useState(null); // 'ambiente' | {lector: ambiente}
   const [f, setF] = useState({ numero_ambiente: "", sede_centro: "", id_periodo: "" });
@@ -10,8 +11,9 @@ export default function Ambientes() {
   const [claveGenerada, setClaveGenerada] = useState(null);
   const [mensaje, setMensaje] = useState(null);
 
-  const cargar = () => api("/ambientes").then(setAmbientes).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
-  useEffect(() => { cargar(); api("/periodos").then(setPeriodos); }, []);
+  const cargar = () =>
+    api("/ambientes").then(setAmbientes).catch((e) => { setAmbientes([]); setMensaje({ tipo: "error", texto: e.message }); });
+  useEffect(() => { cargar(); api("/periodos").then(setPeriodos).catch(() => {}); }, []);
 
   async function crearAmbiente() {
     try {
@@ -40,7 +42,7 @@ export default function Ambientes() {
       <table className="tabla">
         <thead><tr><th>Ambiente</th><th>Sede / Centro</th><th>Lector</th><th>Estado del lector</th><th>Último heartbeat</th><th></th></tr></thead>
         <tbody>
-          {ambientes.map((a) => (
+          {(ambientes || []).map((a) => (
             <tr key={a.id_ambiente}>
               <td><b>{a.numero_ambiente}</b></td>
               <td>{a.sede_centro}</td>
@@ -50,7 +52,8 @@ export default function Ambientes() {
               <td>{!a.serial && <button className="boton mini" onClick={() => { setModal({ lector: a }); setClaveGenerada(null); setLector({ serial: "", modelo: "ZKTeco SenseFace 2A" }); }}>+ Asociar lector</button>}</td>
             </tr>
           ))}
-          {!ambientes.length && <tr><td colSpan={6}><div className="vacio">No hay ambientes registrados.</div></td></tr>}
+          {ambientes === null && <tr><td colSpan={6}><Cargando /></td></tr>}
+          {ambientes?.length === 0 && <tr><td colSpan={6}><div className="vacio">No hay ambientes registrados.</div></td></tr>}
         </tbody>
       </table>
 
