@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../../servicios/api";
 import { useAuth } from "../../contexto/AuthContext.jsx";
 import { useConfirmar } from "../../componentes/Confirmar.jsx";
+import Cargando from "../../componentes/Cargando.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
+import { aMinutos, lunesDe, mismoDia, ocurreEn, sumarDias } from "../../utilidades/fechas";
+import Aviso from "../../componentes/Aviso.jsx";
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 // Orden de semana laboral (lunes a domingo), aunque dia_semana en BD sea 0=domingo
@@ -16,35 +20,17 @@ const COLORES = ["#6d4aff", "#0e9f6e", "#d97706", "#dc2626", "#0284c7", "#7c3aed
 const colorDe = (idFicha) => COLORES[Number(idFicha) % COLORES.length];
 
 const ALTO_HORA = 44; // px por hora en la grilla
-const aMinutos = (hora) => {
-  const [h, m] = String(hora).split(":");
-  return Number(h) * 60 + Number(m);
-};
 const comoHora = (minutos) =>
   `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
-
-// ---- Fechas ----
-const soloFecha = (f) => new Date(f.getFullYear(), f.getMonth(), f.getDate());
-const sumarDias = (f, n) => new Date(f.getFullYear(), f.getMonth(), f.getDate() + n);
-const mismoDia = (a, b) => a.toDateString() === b.toDateString();
-/** Lunes de la semana a la que pertenece la fecha */
-const lunesDe = (f) => sumarDias(f, f.getDay() === 0 ? -6 : 1 - f.getDay());
-
-/** Un horario se repite cada semana, pero solo mientras dure su periodo. */
-function ocurreEn(horario, fecha) {
-  if (horario.dia_semana !== fecha.getDay()) return false;
-  const dia = soloFecha(fecha);
-  const inicio = soloFecha(new Date(horario.periodo_inicio));
-  const fin = soloFecha(new Date(horario.periodo_fin));
-  return dia >= inicio && dia <= fin;
-}
 
 export default function Horarios() {
   const { sesion } = useAuth();
   const { confirmar } = useConfirmar();
   const rol = sesion.usuario.rol;
   const puedeEditar = ["coordinador", "programador"].includes(rol);
-  const esInstructor = rol === "instructor";
+  // Instructor y aprendiz ven directamente su propio horario (el backend lo limita a lo suyo)
+  const vistaPropia = rol === "instructor" || rol === "aprendiz";
+  const esAprendiz = rol === "aprendiz";
 
   const [horarios, setHorarios] = useState([]);
   const [fichas, setFichas] = useState([]);
@@ -53,10 +39,10 @@ export default function Horarios() {
   const [periodos, setPeriodos] = useState([]);
   const [raps, setRaps] = useState([]);
 
-  // El instructor ve lo suyo sin elegir nada; los demás deben filtrar primero.
-  const [tipoFiltro, setTipoFiltro] = useState(esInstructor ? "instructor" : "");
-  const [valorFiltro, setValorFiltro] = useState(esInstructor ? String(sesion.usuario.id) : "");
-  const [aplicado, setAplicado] = useState(esInstructor);
+  // Instructor y aprendiz ven lo suyo sin elegir nada; los demás deben filtrar primero.
+  const [tipoFiltro, setTipoFiltro] = useState(vistaPropia ? "instructor" : "");
+  const [valorFiltro, setValorFiltro] = useState(vistaPropia ? String(sesion.usuario.id) : "");
+  const [aplicado, setAplicado] = useState(vistaPropia);
 
   const [modal, setModal] = useState(null); // null | "nuevo" | horario a editar
   const [detalle, setDetalle] = useState(null);
@@ -68,7 +54,7 @@ export default function Horarios() {
   const [ancla, setAncla] = useState(() => new Date()); // fecha dentro de la semana/mes visible
 
   useEffect(() => {
-    api("/competencias/raps").then(setRaps).catch(() => {});
+    if (!esAprendiz) api("/competencias/raps").then(setRaps).catch(() => {});
     if (puedeEditar) {
       api("/fichas").then(setFichas);
       api("/ambientes").then(setAmbientes);
@@ -77,13 +63,13 @@ export default function Horarios() {
     }
   }, []);
 
-  useEffect(() => { if (esInstructor) cargar(); }, []);
+  useEffect(() => { if (vistaPropia) cargar(); }, []);
 
   function cargar(tipo = tipoFiltro, valor = valorFiltro) {
-    if (!esInstructor && (!tipo || !valor)) return;
+    if (!vistaPropia && (!tipo || !valor)) return;
     setCargando(true);
     const parametro = { instructor: "id_instructor", ficha: "id_ficha", ambiente: "id_ambiente" }[tipo];
-    const consulta = esInstructor ? "" : `?${parametro}=${valor}`;
+    const consulta = vistaPropia ? "" : `?${parametro}=${valor}`;
     api(`/horarios${consulta}`)
       .then((datos) => { setHorarios(datos); setAplicado(true); })
       .catch((e) => setMensaje({ tipo: "error", texto: e.message }))
@@ -192,14 +178,18 @@ export default function Horarios() {
     <>
       <div className="cabecera-pagina">
         <div>
-          <h1>{esInstructor ? "Mis horarios" : "Calendario de horarios"}</h1>
-          <p>Vista semanal de las clases programadas. El sistema valida que no haya cruces de instructor ni de ambiente.</p>
+          <h1>{esAprendiz ? "Mi horario" : vistaPropia ? "Mis horarios" : "Calendario de horarios"}</h1>
+          <p>
+            {esAprendiz
+              ? "Tus clases de la semana: ambiente, instructor y tema de cada una. Toca una clase para ver el detalle."
+              : "Vista semanal de las clases programadas. El sistema valida que no haya cruces de instructor ni de ambiente."}
+          </p>
         </div>
         {puedeEditar && <button className="boton" onClick={abrirNuevo}>+ Nuevo horario</button>}
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
-      {!esInstructor && (
+      {!vistaPropia && (
         <div className="tarjeta" style={{ marginBottom: 18 }}>
           <b>¿Qué horario quieres ver?</b>
           <p style={{ color: "var(--tinta-suave)", fontSize: 13.5, margin: "4px 0 10px" }}>
@@ -235,14 +225,18 @@ export default function Horarios() {
         </div>
       )}
 
-      {cargando && <div className="vacio">Cargando calendario…</div>}
+      {cargando && <Cargando texto="Cargando calendario…" />}
 
       {!cargando && !aplicado && (
-        <div className="vacio">Selecciona un instructor, una ficha o un ambiente para ver su calendario.</div>
+        <Vacio icono="horarios" titulo="Elige qué calendario quieres ver">
+          Selecciona un instructor, una ficha o un ambiente en el recuadro de arriba.
+        </Vacio>
       )}
 
       {!cargando && aplicado && !horarios.length && (
-        <div className="vacio">No hay clases programadas para esa selección.</div>
+        <Vacio icono="horarios" titulo={esAprendiz ? "Aún no tienes clases programadas" : "No hay clases programadas para esa selección"}>
+          {esAprendiz && "Cuando la coordinación programe el horario de tu ficha, lo verás aquí."}
+        </Vacio>
       )}
 
       {!cargando && aplicado && !!horarios.length && (

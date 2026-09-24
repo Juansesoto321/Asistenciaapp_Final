@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { api } from "../../servicios/api";
 import { useAuth } from "../../contexto/AuthContext.jsx";
 import Cargando from "../../componentes/Cargando.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
 
 const VACIA = { numero_ficha: "", programa: "", jornada: "mañana", fecha_inicio: "", fecha_fin: "", id_periodo: "", id_instructor: "" };
 
@@ -42,7 +44,7 @@ export default function Fichas() {
         <p>Programas, matrículas y enrolamiento de huella por ficha.</p></div>
         {["coordinador", "programador"].includes(rol) && <button className="boton" onClick={() => setModal(true)}>+ Nueva ficha</button>}
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
       <table className="tabla">
         <thead><tr><th>Ficha</th><th>Programa</th><th>Jornada</th><th>Instructor</th><th>Aprendices</th><th>Estado</th><th></th></tr></thead>
@@ -59,7 +61,7 @@ export default function Fichas() {
             </tr>
           ))}
           {fichas === null && <tr><td colSpan={7}><Cargando /></td></tr>}
-          {fichas?.length === 0 && <tr><td colSpan={7}><div className="vacio">Aún no hay fichas registradas.</div></td></tr>}
+          {fichas?.length === 0 && <tr><td colSpan={7}><Vacio icono="fichas" titulo="Aún no hay fichas registradas" /></td></tr>}
         </tbody>
       </table>
 

@@ -64,7 +64,8 @@ async function crearFicha(datos) {
 
 /**
  * `filtros` permite acotar por instructor, ficha o ambiente (el calendario exige
- * elegir uno antes de mostrar nada). El instructor siempre queda limitado a lo suyo.
+ * elegir uno antes de mostrar nada). El instructor y el aprendiz siempre quedan
+ * limitados a lo suyo, sin importar los filtros que envíen.
  */
 async function listarHorarios(usuario, filtros = {}) {
   const condiciones = [];
@@ -75,6 +76,9 @@ async function listarHorarios(usuario, filtros = {}) {
   };
 
   if (usuario.rol === "instructor") agregar("h.id_instructor = ?", usuario.id);
+  // El aprendiz ("Mi horario") solo ve las clases de las fichas donde está matriculado
+  else if (usuario.rol === "aprendiz")
+    agregar("h.id_ficha IN (SELECT id_ficha FROM matricula WHERE id_aprendiz = ? AND estado = 'activa')", usuario.id);
   else if (filtros.id_instructor) agregar("h.id_instructor = ?", filtros.id_instructor);
   if (filtros.id_ficha) agregar("h.id_ficha = ?", filtros.id_ficha);
   if (filtros.id_ambiente) agregar("h.id_ambiente = ?", filtros.id_ambiente);

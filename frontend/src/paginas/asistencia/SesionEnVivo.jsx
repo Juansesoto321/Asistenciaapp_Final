@@ -6,8 +6,10 @@ import { useAuth } from "../../contexto/AuthContext.jsx";
 import IconoHuella from "../../componentes/IconoHuella.jsx";
 import Cargando from "../../componentes/Cargando.jsx";
 import { useConfirmar } from "../../componentes/Confirmar.jsx";
-
-const textoPlazo = (horas) => (horas % 24 === 0 ? `${horas / 24} día(s)` : `${horas} horas`);
+import Icono from "../../componentes/Iconos.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
+import { textoPlazo } from "../../utilidades/formato";
 
 export default function SesionEnVivo() {
   const { id } = useParams();
@@ -161,19 +163,23 @@ export default function SesionEnVivo() {
         </div>
       </div>
 
-      {alerta && <div className="mensaje error" role="alert">{alerta}</div>}
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      {alerta && (
+        <div className="mensaje error alerta-banda" role="alert">
+          <Icono nombre="alerta" size="1.2em" /> <span>{alerta}</span>
+        </div>
+      )}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
-      <table className="tabla">
+      <table className="tabla tabla-tarjetas">
         <thead>
           <tr><th>Aprendiz</th><th>Documento</th><th>Huella</th><th>Estado</th><th>Hora</th><th>Método</th><th></th></tr>
         </thead>
         <tbody>
           {sesion.aprendices.map((a) => (
             <tr key={a.id_usuario}>
-              <td>{a.nombres} {a.apellidos}</td>
-              <td>{a.documento}</td>
-              <td>
+              <td className="principal">{a.nombres} {a.apellidos}</td>
+              <td data-etiqueta="Documento">{a.documento}</td>
+              <td data-etiqueta="Huella">
                 {a.tiene_huella ? (
                   <IconoHuella title="Huella registrada" />
                 ) : (
@@ -182,17 +188,17 @@ export default function SesionEnVivo() {
                   </span>
                 )}
               </td>
-              <td>
+              <td data-etiqueta="Estado">
                 {a.estado
                   ? <span className={`insignia ${a.estado}`}>{a.estado}</span>
                   : <span style={{ color: "var(--tinta-suave)" }}>esperando…</span>}
               </td>
-              <td>
+              <td data-etiqueta="Hora">
                 {a.hora_marca
                   ? new Date(a.hora_marca).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
                   : "—"}
               </td>
-              <td>{a.metodo ? <span className={`insignia ${a.metodo}`}>{a.metodo}</span> : "—"}</td>
+              <td data-etiqueta="Método">{a.metodo ? <span className={`insignia ${a.metodo}`}>{a.metodo}</span> : "—"}</td>
               <td>
                 <button
                   className="boton mini suave"
@@ -205,7 +211,7 @@ export default function SesionEnVivo() {
             </tr>
           ))}
           {!sesion.aprendices.length && (
-            <tr><td colSpan={7}><div className="vacio">No hay aprendices matriculados en esta ficha.</div></td></tr>
+            <tr><td colSpan={7}><Vacio icono="usuarios" titulo="No hay aprendices matriculados en esta ficha" /></td></tr>
           )}
         </tbody>
       </table>

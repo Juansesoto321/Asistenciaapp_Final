@@ -217,9 +217,11 @@ asistenciaapp/
 │   │   ├── academico/           # Fichas, ambientes, horarios, competencias
 │   │   ├── asistencia/          # Sesiones, supervisión en vivo, justificaciones, reportes
 │   │   └── administracion/      # Usuarios, configuración
-│   ├── componentes/             # Diseño, iconos SVG, diálogos, indicador de carga
+│   ├── componentes/             # Diseño (menú adaptable al celular), iconos SVG, diálogos,
+│   │                            # avisos flotantes, estados vacíos, anillo de asistencia
 │   ├── contexto/                # Sesión del usuario (AuthContext)
-│   └── servicios/               # api.js (HTTP) y socket.js (tiempo real)
+│   ├── servicios/               # api.js (HTTP) y socket.js (tiempo real)
+│   └── utilidades/              # fechas de los horarios (próxima clase) y formato de textos
 ├── simulador-lector/simulador.js
 └── docker-compose.yml
 ```

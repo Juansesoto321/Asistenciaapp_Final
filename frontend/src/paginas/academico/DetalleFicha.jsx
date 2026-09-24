@@ -5,6 +5,8 @@ import { useAuth } from "../../contexto/AuthContext.jsx";
 import IconoHuella from "../../componentes/IconoHuella.jsx";
 import Cargando from "../../componentes/Cargando.jsx";
 import { useConfirmar } from "../../componentes/Confirmar.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
 
 export default function DetalleFicha() {
   const { id } = useParams();
@@ -89,7 +91,7 @@ export default function DetalleFicha() {
         </div>
         {["coordinador", "programador"].includes(rol) && <button className="boton" onClick={abrirMatricular}>+ Matricular aprendices</button>}
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
       <table className="tabla">
         <thead><tr><th>Aprendiz</th><th>Documento</th><th>Correo</th><th>Huella</th><th>Matrícula</th><th>Acciones</th></tr></thead>
@@ -112,7 +114,7 @@ export default function DetalleFicha() {
             </tr>
           ))}
           {matriculas === null && <tr><td colSpan={6}><Cargando /></td></tr>}
-          {matriculas?.length === 0 && <tr><td colSpan={6}><div className="vacio">No hay aprendices matriculados en esta ficha.</div></td></tr>}
+          {matriculas?.length === 0 && <tr><td colSpan={6}><Vacio icono="usuarios" titulo="No hay aprendices matriculados en esta ficha" /></td></tr>}
         </tbody>
       </table>
 
@@ -134,7 +136,7 @@ export default function DetalleFicha() {
                   {u.nombres} {u.apellidos} · {u.documento}
                 </label>
               ))}
-              {!disponibles.length && <div className="vacio">No hay aprendices disponibles para matricular.</div>}
+              {!disponibles.length && <Vacio icono="usuarios" titulo="No hay aprendices disponibles para matricular" />}
             </div>
             <div className="acciones-modal">
               <button className="boton suave" onClick={() => setModal(null)}>Cancelar</button>

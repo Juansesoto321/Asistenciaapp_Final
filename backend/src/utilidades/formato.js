@@ -25,9 +25,13 @@ function fechaIso(fecha) {
   return `${d.getFullYear()}-${dosDigitos(d.getMonth() + 1)}-${dosDigitos(d.getDate())}`;
 }
 
-/** Texto legible de un plazo en horas: "3 día(s)" o "18 horas". */
+/** Texto legible de un plazo en horas: "1 día", "3 días", "1 hora" o "18 horas". */
 function textoPlazo(horas) {
-  return horas % 24 === 0 ? `${horas / 24} día(s)` : `${horas} horas`;
+  if (horas % 24 === 0) {
+    const dias = horas / 24;
+    return `${dias} ${dias === 1 ? "día" : "días"}`;
+  }
+  return `${horas} ${horas === 1 ? "hora" : "horas"}`;
 }
 
 /**

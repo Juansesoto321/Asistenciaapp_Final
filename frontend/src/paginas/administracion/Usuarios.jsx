@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api } from "../../servicios/api";
 import Cargando from "../../componentes/Cargando.jsx";
 import Icono from "../../componentes/Iconos.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
 
 const VACIO = { nombres: "", apellidos: "", tipo_documento: "CC", documento: "", correo: "", telefono: "", rol: "aprendiz" };
 
@@ -100,7 +102,7 @@ export default function Usuarios() {
           <button className="boton" onClick={() => setModal("crear")}>+ Nuevo usuario</button>
         </div>
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
         <input style={{ maxWidth: 260 }} placeholder="Buscar por nombre, documento o correo"
@@ -139,7 +141,7 @@ export default function Usuarios() {
             </tr>
           ))}
           {usuarios === null && <tr><td colSpan={6}><Cargando /></td></tr>}
-          {usuarios?.length === 0 && <tr><td colSpan={6}><div className="vacio">No hay usuarios con esos filtros.</div></td></tr>}
+          {usuarios?.length === 0 && <tr><td colSpan={6}><Vacio icono="usuarios" titulo="No hay usuarios con esos filtros" /></td></tr>}
         </tbody>
       </table>
 

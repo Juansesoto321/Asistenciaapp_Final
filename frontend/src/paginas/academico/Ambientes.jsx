@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "../../servicios/api";
 import Cargando from "../../componentes/Cargando.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
 
 export default function Ambientes() {
   const [ambientes, setAmbientes] = useState(null);
@@ -37,7 +39,7 @@ export default function Ambientes() {
         <div><h1>Ambientes y lectores</h1><p>Cada ambiente puede tener un lector biométrico asociado. El estado se actualiza con el heartbeat del dispositivo.</p></div>
         <button className="boton" onClick={() => setModal("ambiente")}>+ Nuevo ambiente</button>
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
       <table className="tabla">
         <thead><tr><th>Ambiente</th><th>Sede / Centro</th><th>Lector</th><th>Estado del lector</th><th>Último heartbeat</th><th></th></tr></thead>
@@ -53,7 +55,7 @@ export default function Ambientes() {
             </tr>
           ))}
           {ambientes === null && <tr><td colSpan={6}><Cargando /></td></tr>}
-          {ambientes?.length === 0 && <tr><td colSpan={6}><div className="vacio">No hay ambientes registrados.</div></td></tr>}
+          {ambientes?.length === 0 && <tr><td colSpan={6}><Vacio icono="ambientes" titulo="No hay ambientes registrados">Crea un ambiente y asócialo a un lector para empezar a tomar asistencia.</Vacio></td></tr>}
         </tbody>
       </table>
 

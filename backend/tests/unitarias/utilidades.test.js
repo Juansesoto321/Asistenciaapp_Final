@@ -38,9 +38,11 @@ describe("formato", () => {
     assert.equal(fechaIso(new Date(2026, 8, 9, 23, 30)), "2026-09-09");
   });
 
-  test("textoPlazo habla en días cuando el plazo es exacto", () => {
-    assert.equal(textoPlazo(72), "3 día(s)");
+  test("textoPlazo habla en días cuando el plazo es exacto, con el plural correcto", () => {
+    assert.equal(textoPlazo(72), "3 días");
+    assert.equal(textoPlazo(24), "1 día");
     assert.equal(textoPlazo(18), "18 horas");
+    assert.equal(textoPlazo(1), "1 hora");
   });
 });
 

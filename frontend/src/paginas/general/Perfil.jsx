@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../servicios/api";
+import Aviso from "../../componentes/Aviso.jsx";
+import Cargando from "../../componentes/Cargando.jsx";
 
 export default function Perfil() {
   const [perfil, setPerfil] = useState(null);
@@ -18,13 +20,13 @@ export default function Perfil() {
     } catch (e) { setMensaje({ tipo: "error", texto: e.message }); }
   }
 
-  if (!perfil) return <div className="vacio">Cargando…</div>;
+  if (!perfil) return <Cargando />;
   return (
     <>
       <div className="cabecera-pagina">
         <div><h1>Mi perfil</h1><p>Datos personales y cambio de contraseña. El rol solo lo modifica un coordinador.</p></div>
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
       <div className="tarjeta" style={{ maxWidth: 560 }}>
         <div className="rejilla-2">
           <div><label>Nombres</label><input readOnly value={perfil.nombres} /></div>

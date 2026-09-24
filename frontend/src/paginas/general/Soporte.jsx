@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api } from "../../servicios/api";
 import { useAuth } from "../../contexto/AuthContext.jsx";
 import Cargando from "../../componentes/Cargando.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
 
 export default function Soporte() {
   const { sesion } = useAuth();
@@ -34,7 +36,7 @@ export default function Soporte() {
       <div className="cabecera-pagina">
         <div><h1>Soporte</h1><p>Reporta problemas con tu huella, errores de asistencia o dudas del sistema.</p></div>
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
       <div className="tarjeta" style={{ marginBottom: 18, maxWidth: 640 }}>
         <label>Tipo de problema</label>
@@ -68,7 +70,7 @@ export default function Soporte() {
             </tr>
           ))}
           {tickets === null && <tr><td colSpan={6}><Cargando /></td></tr>}
-          {tickets?.length === 0 && <tr><td colSpan={6}><div className="vacio">No hay tickets registrados.</div></td></tr>}
+          {tickets?.length === 0 && <tr><td colSpan={6}><Vacio icono="configuracion" titulo="No hay tickets registrados" /></td></tr>}
         </tbody>
       </table>
     </>

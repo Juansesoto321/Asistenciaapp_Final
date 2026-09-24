@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "../../servicios/api";
 import Cargando from "../../componentes/Cargando.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
 
 export default function Notificaciones() {
   const [lista, setLista] = useState(null);
@@ -40,7 +42,7 @@ export default function Notificaciones() {
           <button className="boton suave" onClick={marcarTodas}>Marcar todas como leídas ({sinLeer})</button>
         )}
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
       {lista === null ? <Cargando /> : (
         <div style={{ display: "grid", gap: 10 }}>
@@ -62,7 +64,7 @@ export default function Notificaciones() {
               {!n.leida && <button className="boton mini suave" onClick={() => marcarLeida(n)}>Marcar leída</button>}
             </div>
           ))}
-          {!lista.length && <div className="vacio">No tienes notificaciones.</div>}
+          {!lista.length && <Vacio icono="notificaciones" titulo="No tienes notificaciones">Aquí te avisaremos de inasistencias, justificaciones y novedades de tu cuenta.</Vacio>}
         </div>
       )}
     </>
