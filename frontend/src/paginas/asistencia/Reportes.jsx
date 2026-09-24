@@ -3,6 +3,8 @@ import { api } from "../../servicios/api";
 import Icono from "../../componentes/Iconos.jsx";
 import { useConfirmar } from "../../componentes/Confirmar.jsx";
 import { useAuth } from "../../contexto/AuthContext.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
 
 const VACIO = { nombre: "", id_ficha: "", estado: "", fecha_inicio: "", fecha_fin: "" };
 
@@ -60,7 +62,7 @@ export default function Reportes() {
         <div><h1>Búsqueda avanzada y reportes</h1>
         <p>Combina filtros, guarda tus búsquedas frecuentes y exporta a Excel (CSV).</p></div>
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
       <div className="tarjeta" style={{ marginBottom: 18 }}>
         <div className="rejilla-2">
@@ -113,7 +115,7 @@ export default function Reportes() {
                 <td><span className={`insignia ${r.metodo}`}>{r.metodo}</span></td>
               </tr>
             ))}
-            {!resultados.length && <tr><td colSpan={7}><div className="vacio">Sin resultados con esos filtros.</div></td></tr>}
+            {!resultados.length && <tr><td colSpan={7}><Vacio icono="reportes" titulo="Sin resultados con esos filtros">Prueba ampliando el rango de fechas o quitando algún filtro.</Vacio></td></tr>}
           </tbody>
         </table>
       )}

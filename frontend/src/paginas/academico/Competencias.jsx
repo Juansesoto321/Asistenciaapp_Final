@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { api } from "../../servicios/api";
 import { useAuth } from "../../contexto/AuthContext.jsx";
 import { useConfirmar } from "../../componentes/Confirmar.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
+import Cargando from "../../componentes/Cargando.jsx";
 
 const COMPETENCIA_VACIA = { codigo: "", nombre: "" };
 const RAP_VACIO = { id_competencia: "", codigo: "", nombre: "" };
@@ -138,8 +141,8 @@ export default function Competencias() {
           </div>
         )}
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
-      {cargando && <div className="vacio">Cargando…</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
+      {cargando && <Cargando />}
 
       {competencias.map((x) => (
         <div key={x.id_competencia} className="tarjeta" style={{ marginBottom: 14 }}>
@@ -210,7 +213,7 @@ export default function Competencias() {
         </div>
       ))}
       {!cargando && !competencias.length && (
-        <div className="vacio">Aún no hay competencias. Créalas una por una o usa la carga masiva desde un CSV.</div>
+        <Vacio icono="competencias" titulo="Aún no hay competencias. Créalas una por una o usa la carga masiva desde un CSV" />
       )}
 
       {modalCompetencia && (

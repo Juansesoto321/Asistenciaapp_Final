@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "../../servicios/api";
 import Cargando from "../../componentes/Cargando.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
 
 const PERIODO_VACIO = { nombre: "", fecha_inicio: "", fecha_fin: "" };
 
@@ -40,7 +42,7 @@ export default function Configuracion() {
       <div className="cabecera-pagina">
         <div><h1>Configuración del sistema</h1><p>Parámetros que gobiernan las reglas de negocio.</p></div>
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
       <div className="tarjeta" style={{ maxWidth: 560 }}>
         <label>Nombre de la institución</label>
         <input value={conf.nombre_institucion || ""} onChange={(e) => setConf({ ...conf, nombre_institucion: e.target.value })} />
@@ -70,7 +72,7 @@ export default function Configuracion() {
                 <td>{new Date(p.fecha_fin).toLocaleDateString("es-CO")}</td>
               </tr>
             ))}
-            {!periodos.length && <tr><td colSpan={3}><div className="vacio">Aún no hay periodos creados.</div></td></tr>}
+            {!periodos.length && <tr><td colSpan={3}><Vacio icono="horarios" titulo="Aún no hay periodos creados" /></td></tr>}
           </tbody>
         </table>
         <h3 style={{ fontSize: 15, marginTop: 20 }}>Nuevo periodo</h3>

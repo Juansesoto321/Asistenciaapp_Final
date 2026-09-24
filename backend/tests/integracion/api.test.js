@@ -99,6 +99,19 @@ prueba("un horario que termina antes de empezar se rechaza con un mensaje claro"
   assert.match(r.datos.mensaje, /hora de fin/);
 });
 
+prueba("el aprendiz solo ve el horario de su propia ficha (Mi horario)", async () => {
+  const propia = await e.peticion("GET", "/api/horarios", { token: tokens.ana });
+  assert.equal(propia.estado, 200);
+  assert.ok(propia.datos.length > 0);
+  assert.ok(propia.datos.every((h) => h.id_ficha === e.ids.ficha));
+
+  // Un aprendiz sin matrícula no ve nada, aunque pida una ficha ajena por filtro
+  const tokenAjeno = await e.iniciarSesionComo("ciro@prueba.co");
+  const ajena = await e.peticion("GET", `/api/horarios?id_ficha=${e.ids.ficha}`, { token: tokenAjeno });
+  assert.equal(ajena.estado, 200);
+  assert.deepEqual(ajena.datos, []);
+});
+
 // ---------- Sesión de clase y marcación ----------
 
 prueba("el instructor titular inicia la sesión de hoy; otro instructor no puede", async () => {

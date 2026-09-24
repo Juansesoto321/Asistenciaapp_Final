@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { api } from "../../servicios/api";
 import Cargando from "../../componentes/Cargando.jsx";
 import Icono from "../../componentes/Iconos.jsx";
+import Aviso from "../../componentes/Aviso.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
+import { textoPlazo as formatearPlazo } from "../../utilidades/formato";
 
-function textoPlazo(horas) {
-  const h = Number(horas || 72);
-  return h % 24 === 0 ? `${h / 24} día(s)` : `${h} horas`;
-}
+const textoPlazo = (horas) => formatearPlazo(Number(horas || 72));
 
 const ETIQUETA_TIPO = {
   cita_medica: "Cita médica",
@@ -110,14 +110,10 @@ export default function Justificaciones() {
         </div>
       </div>
 
-      {mensaje && (
-        <div className={`mensaje ${mensaje.tipo}`}>
-          {mensaje.texto}
-        </div>
-      )}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
       {lista === null ? <Cargando /> : (
-      <table className="tabla">
+      <table className="tabla tabla-tarjetas">
         <thead>
           <tr>
             <th>Fecha clase</th>
@@ -133,27 +129,27 @@ export default function Justificaciones() {
         <tbody>
           {lista.map((j) => (
             <tr key={j.id_justificacion}>
-              <td>
+              <td data-etiqueta="Fecha clase">
                 {new Date(j.fecha).toLocaleDateString("es-CO")}
               </td>
 
-              <td>
+              <td data-etiqueta="Aprendiz">
                 {j.nombres} {j.apellidos}
               </td>
 
-              <td>{j.numero_ficha}</td>
+              <td data-etiqueta="Ficha">{j.numero_ficha}</td>
 
-              <td>
+              <td data-etiqueta="Tipo">
                 {ETIQUETA_TIPO[j.tipo] || "—"}
               </td>
 
-              <td>
+              <td data-etiqueta="Enviada">
                 {j.enviada_en
                   ? new Date(j.enviada_en).toLocaleString("es-CO")
                   : "—"}
               </td>
 
-              <td>
+              <td data-etiqueta="Estado">
                 <span className={`insignia ${j.estado}`}>
                   {j.estado}
                 </span>
@@ -173,9 +169,9 @@ export default function Justificaciones() {
           {!lista.length && (
             <tr>
               <td colSpan={7}>
-                <div className="vacio">
-                  No hay justificaciones para revisar.
-                </div>
+                <Vacio icono="justificaciones" titulo="No hay justificaciones para revisar">
+                  Cuando un aprendiz cargue la excusa de una inasistencia, aparecerá aquí para aprobarla o rechazarla.
+                </Vacio>
               </td>
             </tr>
           )}

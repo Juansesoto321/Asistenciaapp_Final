@@ -95,17 +95,44 @@ label { display: block; font-size: 13px; font-weight: 600; color: var(--tinta-su
 .marca small { display: block; color: #9d90da; font-size: 11px; font-weight: 500; }
 .barra-lateral nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .barra-lateral nav a {
-  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 10px;
   color: #cfc6ff; font-size: 14px; font-weight: 500;
 }
 .barra-lateral nav a:hover { background: rgba(255,255,255,0.07); }
 .barra-lateral nav a.activo { background: var(--gradiente); color: #fff; }
-.pie-usuario { border-top: 1px solid rgba(255,255,255,0.12); padding-top: 12px; font-size: 13px; }
-.pie-usuario b { color: #fff; display: block; }
-.pie-usuario button { background: none; border: none; color: #b3a6ec; padding: 6px 0; font-size: 13px; }
-.pie-usuario button:hover { color: #fff; }
+.enlace-menu { display: inline-flex; align-items: center; gap: 10px; }
+.contador-notif {
+  background: var(--rojo); color: #fff; border-radius: 999px; min-width: 18px; height: 18px;
+  font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px;
+}
 
-.contenido { padding: 28px 32px; max-width: 1200px; }
+/* Pie del menú: iniciales, nombre, rol y botón de salir */
+.pie-usuario {
+  border-top: 1px solid rgba(255,255,255,0.12); padding-top: 14px; font-size: 13px;
+  display: flex; align-items: center; gap: 10px;
+}
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--gradiente); color: #fff;
+  display: grid; place-items: center; font-weight: 700; font-size: 13px; flex-shrink: 0; letter-spacing: .02em;
+}
+.datos-usuario { flex: 1; min-width: 0; }
+.datos-usuario b { color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.datos-usuario span { color: #9d90da; text-transform: capitalize; }
+.boton-salir { background: none; border: none; color: #b3a6ec; padding: 8px; border-radius: 9px; display: grid; place-items: center; }
+.boton-salir:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+/* Barra superior y menú deslizable: solo en pantallas angostas (ver @media) */
+.boton-menu {
+  background: none; border: 0; color: #fff; padding: 8px; border-radius: 10px;
+  display: grid; place-items: center; position: relative;
+}
+/* Van después de .boton-menu para que el display: none gane en computador */
+.barra-superior, .fondo-menu, .boton-menu.cerrar-menu { display: none; }
+.boton-menu:hover { background: rgba(255,255,255,0.08); }
+.campana .contador-notif { position: absolute; top: 2px; right: 0; }
+
+/* min-width: 0 evita que un contenido ancho (el calendario) empuje la página hacia la derecha */
+.contenido { padding: 28px 32px; max-width: 1200px; min-width: 0; }
 .cabecera-pagina { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 14px; flex-wrap: wrap; }
 .cabecera-pagina h1 { font-size: 23px; }
 .cabecera-pagina p { color: var(--tinta-suave); font-size: 13.5px; margin-top: 3px; }
@@ -123,7 +150,7 @@ table.tabla { width: 100%; border-collapse: collapse; background: var(--blanco);
 .tabla tr:hover td { background: #faf9ff; }
 
 /* ---- Insignias de estado ---- */
-.insignia { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.insignia { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .insignia.presente, .insignia.activo, .insignia.activa, .insignia.en_linea, .insignia.aprobada { background: var(--verde-suave); color: var(--verde); }
 .insignia.tardanza, .insignia.pendiente, .insignia.enviada, .insignia.no_verificado { background: var(--ambar-suave); color: var(--ambar); }
 .insignia.ausente, .insignia.inactivo, .insignia.bloqueado, .insignia.rechazada, .insignia.fuera_de_linea, .insignia.vencida { background: var(--rojo-suave); color: var(--rojo); }
@@ -146,13 +173,84 @@ table.tabla { width: 100%; border-collapse: collapse; background: var(--blanco);
 .vacio { text-align: center; color: var(--tinta-suave); padding: 34px 10px; font-size: 14px; }
 
 @media (max-width: 860px) {
-  .aplicacion { grid-template-columns: 1fr; }
-  .barra-lateral { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; }
-  .barra-lateral nav { flex-direction: row; flex-wrap: wrap; }
+  /* Fila de la barra superior a su altura; el contenido ocupa el resto (en
+     páginas cortas, sin esto la barra se estiraba para llenar la pantalla) */
+  .aplicacion { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .barra-superior {
+    display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 30;
+    background: var(--violeta-950); color: #fff; padding: 8px 10px;
+  }
+  .marca-mini { flex: 1; display: flex; align-items: center; gap: 9px; color: #fff; font-weight: 700; font-size: 16px; }
+  .marca-mini .icono { width: 32px; height: 32px; border-radius: 9px; background: var(--gradiente); display: grid; place-items: center; }
+  /* El menú lateral pasa a ser un cajón que entra desde la izquierda */
+  .barra-lateral {
+    position: fixed; top: 0; left: 0; bottom: 0; height: auto; width: min(280px, 84vw); z-index: 50;
+    overflow-y: auto; transform: translateX(-100%); transition: transform .22s ease;
+  }
+  .barra-lateral.abierta { transform: translateX(0); box-shadow: 10px 0 34px rgba(0,0,0,.35); }
+  .marca { position: relative; }
+  .boton-menu.cerrar-menu { display: grid; margin-left: auto; }
+  .fondo-menu {
+    display: block; position: fixed; inset: 0; z-index: 45; background: rgba(23,18,58,.5);
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .fondo-menu.visible { opacity: 1; pointer-events: auto; }
   .contenido { padding: 18px; }
   .rejilla-2 { grid-template-columns: 1fr; }
 }
-@media (prefers-reduced-motion: reduce) { .pulso { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .pulso { animation: none; }
+  .barra-lateral, .fondo-menu { transition: none; }
+}
+
+/* ---- Avisos flotantes (resultado de una acción) ---- */
+.aviso-flotante {
+  position: fixed; right: 22px; bottom: 22px; z-index: 70; max-width: min(430px, calc(100vw - 32px));
+  display: flex; align-items: flex-start; gap: 10px; padding: 13px 14px; border-radius: 12px;
+  background: var(--blanco); font-size: 14px; box-shadow: 0 14px 36px rgba(23,18,58,.22);
+  animation: aparecer .22s ease-out;
+}
+.aviso-flotante.exito { border-left: 4px solid var(--verde); color: var(--verde); }
+.aviso-flotante.error { border-left: 4px solid var(--rojo); color: var(--rojo); }
+.aviso-flotante span { flex: 1; color: var(--tinta); line-height: 1.45; font-weight: 500; }
+.aviso-flotante button { background: none; border: 0; color: var(--tinta-suave); padding: 2px; border-radius: 6px; display: grid; }
+.aviso-flotante button:hover { color: var(--tinta); background: var(--violeta-50); }
+@keyframes aparecer { from { opacity: 0; transform: translateY(10px); } }
+
+/* ---- Estados vacíos con ícono ---- */
+.vacio-icono { color: var(--violeta-500); opacity: .55; margin-bottom: 10px; }
+.vacio-titulo { font-weight: 600; color: var(--tinta); font-size: 15px; }
+.vacio-texto { margin: 5px auto 0; max-width: 440px; line-height: 1.5; }
+
+/* ---- Panel ---- */
+.resumen-panel { display: grid; grid-template-columns: minmax(250px, 1fr) 2fr; gap: 14px; margin-bottom: 14px; }
+/* El texto va al lado del anillo si cabe; si no, pasa debajo */
+.tarjeta-anillo { display: flex; align-items: center; justify-content: center; gap: 14px 18px; flex-wrap: wrap; }
+.tarjeta-anillo > div:last-child { flex: 1 1 150px; }
+.metricas-2x2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+/* Cuatro métricas: en una fila, o en dos filas de dos (nunca 3 + 1 suelta) */
+.metricas-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
+@media (max-width: 1000px) { .metricas-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tarjeta-metrica.enlace { display: block; color: inherit; transition: border-color .15s; }
+.tarjeta-metrica.enlace:hover { border-color: var(--violeta-500); }
+.tarjeta-metrica.atencion { background: var(--ambar-suave); border-color: #fcd9a8; }
+.tarjeta-metrica.atencion .valor, .tarjeta-metrica.atencion .nombre { color: var(--ambar); }
+.dos-columnas { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; align-items: start; }
+.titulo-tarjeta { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.titulo-tarjeta h3 { font-size: 16px; }
+.lista-clases { list-style: none; padding: 0; margin: 8px 0 0; }
+.lista-clases li {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 12px 0; border-top: 1px solid var(--borde);
+}
+.lista-clases .hora-clase { font-weight: 700; color: var(--violeta-700); font-size: 14px; }
+.lista-clases small { display: block; color: var(--tinta-suave); font-size: 12.5px; margin-top: 2px; }
+.accesos { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.accesos .boton { justify-content: flex-start; }
+.alerta-banda { display: flex; align-items: flex-start; gap: 10px; }
+@media (max-width: 860px) {
+  .resumen-panel, .dos-columnas { grid-template-columns: 1fr; }
+}
 
 /* ---- Calendario interactivo del panel ---- */
 .calendario-panel { padding: 18px 20px 20px; }
@@ -243,7 +341,34 @@ table.tabla { width: 100%; border-collapse: collapse; background: var(--blanco);
 @media (max-width: 600px) {
   .tarjeta-acceso { padding: 24px 20px; border-radius: 16px; }
   .contenido { padding: 14px; }
-  table.tabla { display: block; overflow-x: auto; white-space: nowrap; }
+  table.tabla:not(.tabla-tarjetas) { display: block; overflow-x: auto; white-space: nowrap; }
+
+  /* Tablas que en celular se leen mejor como tarjetas: cada fila es una
+     tarjeta y cada celda muestra su título (atributo data-etiqueta). */
+  table.tabla-tarjetas, .tabla-tarjetas tbody, .tabla-tarjetas tr, .tabla-tarjetas td { display: block; width: 100%; }
+  table.tabla-tarjetas { background: transparent; box-shadow: none; overflow: visible; }
+  .tabla-tarjetas thead { display: none; }
+  .tabla-tarjetas tr {
+    background: var(--blanco); border: 1px solid var(--borde); border-radius: var(--radio);
+    margin-bottom: 10px; padding: 4px 14px; box-shadow: var(--sombra);
+  }
+  .tabla-tarjetas tr:hover td { background: transparent; }
+  .tabla-tarjetas td {
+    border: 0; padding: 8px 0; display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; text-align: right;
+  }
+  .tabla-tarjetas td + td { border-top: 1px dashed var(--borde); }
+  .tabla-tarjetas td[data-etiqueta]::before {
+    content: attr(data-etiqueta); font-size: 11.5px; font-weight: 700; color: var(--tinta-suave);
+    text-transform: uppercase; letter-spacing: .04em; text-align: left;
+  }
+  .tabla-tarjetas td.principal { font-weight: 700; font-size: 15px; justify-content: flex-start; text-align: left; }
+  .tabla-tarjetas td:not([data-etiqueta]):not(.principal) { justify-content: flex-end; }
+  .tabla-tarjetas td[colspan] { justify-content: center; }
+
+  .aviso-flotante { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+  .metricas-2x2 { gap: 10px; }
+  .tarjeta-anillo { justify-content: center; }
   .acciones-modal { flex-wrap: wrap; }
   .acciones-modal .boton { flex: 1 1 auto; }
   .cabecera-pagina h1 { font-size: 20px; }

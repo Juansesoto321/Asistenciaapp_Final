@@ -55,7 +55,7 @@ export default function App() {
       <Route path="/fichas" element={<Protegida roles={PERSONAL}><Fichas /></Protegida>} />
       <Route path="/fichas/:id" element={<Protegida roles={PERSONAL}><DetalleFicha /></Protegida>} />
       <Route path="/ambientes" element={<Protegida roles={COORDINACION}><Ambientes /></Protegida>} />
-      <Route path="/horarios" element={<Protegida roles={PERSONAL}><Horarios /></Protegida>} />
+      <Route path="/horarios" element={<Protegida roles={[...PERSONAL, "aprendiz"]}><Horarios /></Protegida>} />
       <Route path="/competencias" element={<Protegida roles={PERSONAL}><Competencias /></Protegida>} />
 
       <Route path="/sesiones" element={<Protegida roles={PERSONAL}><Sesiones /></Protegida>} />

@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../servicios/api";
+import Aviso from "../../componentes/Aviso.jsx";
+import Cargando from "../../componentes/Cargando.jsx";
+import Vacio from "../../componentes/Vacio.jsx";
+import Icono from "../../componentes/Iconos.jsx";
+import AnilloAsistencia from "../../componentes/AnilloAsistencia.jsx";
+import { mayusculaInicial } from "../../utilidades/formato";
 
 const ETIQUETA_SOPORTE = {
   pendiente: "Por cargar",
@@ -19,23 +25,6 @@ const ETIQUETA_TIPO = {
   otro: "Otro",
 };
 
-function Anillo({ porcentaje, minimo }) {
-  const critico = porcentaje < minimo;
-  const color = critico ? "var(--rojo)" : "var(--verde)";
-  const r = 56, c = 2 * Math.PI * r;
-  return (
-    <div className="anillo-progreso">
-      <svg width="132" height="132" role="img" aria-label={`Asistencia ${porcentaje}%`}>
-        <circle cx="66" cy="66" r={r} fill="none" stroke="var(--borde)" strokeWidth="12" />
-        <circle cx="66" cy="66" r={r} fill="none" stroke={color} strokeWidth="12" strokeLinecap="round"
-                strokeDasharray={c} strokeDashoffset={c * (1 - porcentaje / 100)}
-                transform="rotate(-90 66 66)" />
-      </svg>
-      <div className="centro" style={{ color }}>{porcentaje}%</div>
-    </div>
-  );
-}
-
 export default function MiAsistencia() {
   const [datos, setDatos] = useState(null);
   const [mensaje, setMensaje] = useState(null);
@@ -46,7 +35,7 @@ export default function MiAsistencia() {
       .then(setDatos).catch((e) => setMensaje({ tipo: "error", texto: e.message }));
   useEffect(() => { cargar(); }, []);
 
-  if (!datos) return <div className="vacio">Cargando…</div>;
+  if (!datos) return mensaje ? <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} /> : <Cargando />;
   const r = datos.resumen;
 
   return (
@@ -59,18 +48,29 @@ export default function MiAsistencia() {
           </select>
         )}
       </div>
-      {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}
+      <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
       {r && (<>
         {r.porcentaje < r.minimo && (
-          <div className="mensaje error">
-            ⚠️ Tu asistencia ({r.porcentaje}%) está por debajo del mínimo institucional ({r.minimo}%).
-            Habla con tu instructor y justifica tus inasistencias a tiempo.
+          <div className="mensaje error alerta-banda" role="alert">
+            <Icono nombre="alerta" size="1.2em" />
+            <span>
+              Tu asistencia ({r.porcentaje} %) está por debajo del mínimo institucional ({r.minimo} %).
+              Habla con tu instructor y justifica tus inasistencias a tiempo.
+            </span>
           </div>
         )}
-        <div className="tarjeta" style={{ display: "flex", gap: 26, alignItems: "center", flexWrap: "wrap", marginBottom: 18 }}>
-          <Anillo porcentaje={r.porcentaje} minimo={r.minimo} />
-          <div className="fila-tarjetas" style={{ flex: 1, marginBottom: 0 }}>
+        <div className="resumen-panel">
+          <div className="tarjeta tarjeta-anillo">
+            <AnilloAsistencia porcentaje={r.porcentaje} minimo={r.minimo} tamano={128} />
+            <div>
+              <div style={{ fontWeight: 700 }}>Asistencia acumulada</div>
+              <p style={{ color: "var(--tinta-suave)", fontSize: 13, marginTop: 4 }}>
+                {r.total} clase{r.total === 1 ? "" : "s"} registrada{r.total === 1 ? "" : "s"} · mínimo {r.minimo} %
+              </p>
+            </div>
+          </div>
+          <div className="metricas-2x2">
             <div className="tarjeta-metrica"><div className="valor" style={{ color: "var(--verde)" }}>{r.presentes}</div><div className="nombre">Presentes</div></div>
             <div className="tarjeta-metrica"><div className="valor" style={{ color: "var(--ambar)" }}>{r.tardanzas}</div><div className="nombre">Tardanzas</div></div>
             <div className="tarjeta-metrica"><div className="valor" style={{ color: "var(--azul)" }}>{r.justificadas}</div><div className="nombre">Justificadas</div></div>
@@ -79,17 +79,19 @@ export default function MiAsistencia() {
         </div>
       </>)}
 
-      <table className="tabla">
+      <table className="tabla tabla-tarjetas">
         <thead><tr><th>Fecha</th><th>Estado</th><th>Hora de marca</th><th>Método</th><th>Observación</th><th>Soporte</th></tr></thead>
         <tbody>
           {datos.detalle.map((d, i) => (
             <tr key={i}>
-              <td>{new Date(d.fecha).toLocaleDateString("es-CO", { weekday: "short", day: "2-digit", month: "short" })}</td>
-              <td><span className={`insignia ${d.estado}`}>{d.estado}</span></td>
-              <td>{d.hora || "—"}</td>
-              <td><span className={`insignia ${d.metodo}`}>{d.metodo}</span></td>
-              <td>{d.observacion || "—"}</td>
-              <td>
+              <td className="principal">
+                {mayusculaInicial(new Date(d.fecha).toLocaleDateString("es-CO", { weekday: "short", day: "2-digit", month: "short" }))}
+              </td>
+              <td data-etiqueta="Estado"><span className={`insignia ${d.estado}`}>{d.estado}</span></td>
+              <td data-etiqueta="Hora de marca">{d.hora || "—"}</td>
+              <td data-etiqueta="Método"><span className={`insignia ${d.metodo}`}>{d.metodo}</span></td>
+              <td data-etiqueta="Observación">{d.observacion || "—"}</td>
+              <td data-etiqueta="Soporte">
                 {d.estado_soporte === "pendiente" ? (
                   <Link to={`/justificar/${d.token_soporte}`} className="boton mini">Cargar soporte →</Link>
                 ) : d.estado_soporte ? (
@@ -100,7 +102,13 @@ export default function MiAsistencia() {
               </td>
             </tr>
           ))}
-          {!datos.detalle.length && <tr><td colSpan={6}><div className="vacio">Aún no tienes registros de asistencia.</div></td></tr>}
+          {!datos.detalle.length && (
+            <tr><td colSpan={6}>
+              <Vacio icono="asistencia" titulo="Aún no tienes registros de asistencia">
+                Cada vez que marques con tu huella, o tu instructor registre tu asistencia, la verás aquí.
+              </Vacio>
+            </td></tr>
+          )}
         </tbody>
       </table>
 
@@ -121,7 +129,12 @@ export default function MiAsistencia() {
             {detalleSoporte.soporte_observacion && (
               <>
                 <label style={{ marginTop: 14 }}>Observación del instructor</label>
-                <div className="tarjeta" style={{ background: "var(--rojo-suave)" }}>{detalleSoporte.soporte_observacion}</div>
+                {/* Verde si la aprobó, rojo si la rechazó (antes siempre salía en rojo) */}
+                <div className="tarjeta" style={{
+                  background: detalleSoporte.estado_soporte === "rechazada" ? "var(--rojo-suave)" : "var(--verde-suave)",
+                }}>
+                  {detalleSoporte.soporte_observacion}
+                </div>
               </>
             )}
             <div className="acciones-modal">
