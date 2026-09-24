@@ -93,6 +93,7 @@ export default function DetalleFicha() {
       </div>
       <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
+      <div className="tabla-desplazable">
       <table className="tabla">
         <thead><tr><th>Aprendiz</th><th>Documento</th><th>Correo</th><th>Huella</th><th>Matrícula</th><th>Acciones</th></tr></thead>
         <tbody>
@@ -117,6 +118,7 @@ export default function DetalleFicha() {
           {matriculas?.length === 0 && <tr><td colSpan={6}><Vacio icono="usuarios" titulo="No hay aprendices matriculados en esta ficha" /></td></tr>}
         </tbody>
       </table>
+      </div>
 
       {modal === "matricular" && (
         <div className="superposicion" onClick={() => setModal(null)}>

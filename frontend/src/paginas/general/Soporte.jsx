@@ -51,6 +51,7 @@ export default function Soporte() {
         <button className="boton" style={{ marginTop: 14 }} disabled={!f.descripcion.trim()} onClick={crear}>Registrar ticket</button>
       </div>
 
+      <div className="tabla-desplazable">
       <table className="tabla">
         <thead><tr><th>#</th>{["coordinador", "programador"].includes(rol) && <th>Usuario</th>}<th>Tipo</th><th>Descripción</th><th>Estado</th>{["coordinador", "programador"].includes(rol) && <th></th>}</tr></thead>
         <tbody>
@@ -73,6 +74,7 @@ export default function Soporte() {
           {tickets?.length === 0 && <tr><td colSpan={6}><Vacio icono="configuracion" titulo="No hay tickets registrados" /></td></tr>}
         </tbody>
       </table>
+      </div>
     </>
   );
 }

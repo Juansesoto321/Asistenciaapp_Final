@@ -46,6 +46,7 @@ export default function Fichas() {
       </div>
       <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
+      <div className="tabla-desplazable">
       <table className="tabla">
         <thead><tr><th>Ficha</th><th>Programa</th><th>Jornada</th><th>Instructor</th><th>Aprendices</th><th>Estado</th><th></th></tr></thead>
         <tbody>
@@ -64,6 +65,7 @@ export default function Fichas() {
           {fichas?.length === 0 && <tr><td colSpan={7}><Vacio icono="fichas" titulo="Aún no hay fichas registradas" /></td></tr>}
         </tbody>
       </table>
+      </div>
 
       {modal && (
         <div className="superposicion" onClick={() => setModal(false)}>

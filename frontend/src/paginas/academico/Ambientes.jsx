@@ -41,6 +41,7 @@ export default function Ambientes() {
       </div>
       <Aviso mensaje={mensaje} alCerrar={() => setMensaje(null)} />
 
+      <div className="tabla-desplazable">
       <table className="tabla">
         <thead><tr><th>Ambiente</th><th>Sede / Centro</th><th>Lector</th><th>Estado del lector</th><th>Último heartbeat</th><th></th></tr></thead>
         <tbody>
@@ -58,6 +59,7 @@ export default function Ambientes() {
           {ambientes?.length === 0 && <tr><td colSpan={6}><Vacio icono="ambientes" titulo="No hay ambientes registrados">Crea un ambiente y asócialo a un lector para empezar a tomar asistencia.</Vacio></td></tr>}
         </tbody>
       </table>
+      </div>
 
       {modal === "ambiente" && (
         <div className="superposicion" onClick={() => setModal(null)}>
