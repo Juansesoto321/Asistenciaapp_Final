@@ -5,7 +5,8 @@
 const nodemailer = require("nodemailer");
 
 let transportador = null;
-if (process.env.CORREO_HOST) {
+// En las pruebas automáticas jamás se envían correos reales
+if (process.env.CORREO_HOST && process.env.NODE_ENV !== "test") {
   transportador = nodemailer.createTransport({
     host: process.env.CORREO_HOST,
     port: Number(process.env.CORREO_PUERTO || 587),
@@ -29,7 +30,7 @@ function imprimirEnConsola(para, asunto, html) {
 
 async function enviarCorreo({ para, asunto, html }) {
   if (!transportador) {
-    imprimirEnConsola(para, asunto, html);
+    if (process.env.NODE_ENV !== "test") imprimirEnConsola(para, asunto, html);
     return { simulado: true };
   }
   // El envio de correo NUNCA debe tumbar la operacion que lo dispara (cerrar

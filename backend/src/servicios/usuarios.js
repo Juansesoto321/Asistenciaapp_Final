@@ -1,54 +1,92 @@
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
-const repositorio = require("../repositorios/usuarios");
+const modelo = require("../modelos/usuarios");
 const { enviarCorreo } = require("./correo");
 const { auditar } = require("./auditoria");
+const { error } = require("../utilidades/errores");
+const { escaparHtml } = require("../utilidades/formato");
 
 const ROLES_VALIDOS = ["coordinador", "programador", "instructor", "aprendiz"];
+const FORMATO_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function generarContrasenaTemporal() {
   return `Sena${crypto.randomBytes(3).toString("hex")}*1`;
 }
 
+/**
+ * Limpia y valida los datos de una cuenta nueva. El correo se guarda en
+ * minúsculas: sin esto "Ana@sena.edu.co" y "ana@sena.edu.co" podían quedar
+ * como dos cuentas distintas.
+ */
+function normalizarCuenta(datos) {
+  const cuenta = {
+    ...datos,
+    nombres: String(datos.nombres || "").trim(),
+    apellidos: String(datos.apellidos || "").trim(),
+    documento: String(datos.documento || "").trim(),
+    correo: String(datos.correo || "").trim().toLowerCase(),
+    telefono: datos.telefono ? String(datos.telefono).trim() : null,
+  };
+  if (!cuenta.nombres || !cuenta.apellidos || !cuenta.documento || !cuenta.correo)
+    throw error("Faltan campos obligatorios (nombres, apellidos, documento, correo)", "validacion");
+  if (!FORMATO_CORREO.test(cuenta.correo)) throw error(`Correo inválido: ${cuenta.correo}`, "validacion");
+  return cuenta;
+}
+
+function correoBienvenida(cuenta, temporal) {
+  return {
+    para: cuenta.correo,
+    asunto: "AsistenciaApp · Tu cuenta fue creada",
+    html: `<p>Hola ${escaparHtml(cuenta.nombres)},</p><p>Tu cuenta en AsistenciaApp está lista.</p>
+           <p><b>Usuario:</b> ${escaparHtml(cuenta.correo)}<br/><b>Contraseña temporal:</b> ${temporal}</p>
+           <p>Cámbiala al ingresar por primera vez, desde "Mi perfil".</p>`,
+  };
+}
+
 async function listar(filtros) {
-  return repositorio.listar(filtros);
+  return modelo.listar(filtros);
 }
 
 // Crear usuario (contrasena temporal enviada por correo — CU-04)
 async function crear(datos, idActor) {
-  if (!ROLES_VALIDOS.includes(datos.rol))
-    throw Object.assign(new Error("Rol inválido"), { tipo: "validacion" });
+  if (!ROLES_VALIDOS.includes(datos.rol)) throw error("Rol inválido", "validacion");
+  const cuenta = normalizarCuenta(datos);
   const temporal = generarContrasenaTemporal();
   const hash = await bcrypt.hash(temporal, 10);
-  const idUsuario = await repositorio.crear({ ...datos, hash });
-  await enviarCorreo({
-    para: datos.correo,
-    asunto: "AsistenciaApp · Tu cuenta fue creada",
-    html: `<p>Hola ${datos.nombres},</p><p>Tu cuenta en AsistenciaApp está lista.</p>
-           <p><b>Usuario:</b> ${datos.correo}<br/><b>Contraseña temporal:</b> ${temporal}</p>
-           <p>Cámbiala al ingresar por primera vez.</p>`,
-  });
-  await auditar(idActor, "crear_usuario", "usuario", idUsuario, { rol: datos.rol });
+  const idUsuario = await modelo.crear({ ...cuenta, hash });
+  await enviarCorreo(correoBienvenida(cuenta, temporal));
+  await auditar(idActor, "crear_usuario", "usuario", idUsuario, { rol: cuenta.rol });
   return idUsuario;
 }
 
 async function editar(idUsuario, datos, idActor) {
-  await repositorio.editar(idUsuario, datos);
+  if (datos.rol !== undefined && !ROLES_VALIDOS.includes(datos.rol)) throw error("Rol inválido", "validacion");
+  // Evita que el coordinador se quite a sí mismo el acceso a este módulo
+  if (Number(idUsuario) === idActor && datos.rol && datos.rol !== "coordinador")
+    throw error("No puedes quitarte tu propio rol de coordinador", "validacion");
+  const actualizado = await modelo.editar(idUsuario, {
+    nombres: datos.nombres?.trim() || undefined,
+    apellidos: datos.apellidos?.trim() || undefined,
+    telefono: datos.telefono,
+    rol: datos.rol,
+  });
+  if (!actualizado) throw error("Usuario no encontrado", "no_encontrado");
   await auditar(idActor, "editar_usuario", "usuario", Number(idUsuario));
 }
 
 // Cambiar estado: aprobar (pendiente->activo), desactivar, reactivar.
 // Regla CU-04: no se elimina, solo se desactiva.
 async function cambiarEstado(idUsuario, estado, idActor) {
-  if (!["activo", "inactivo"].includes(estado))
-    throw Object.assign(new Error("Estado inválido"), { tipo: "validacion" });
-  const usuario = await repositorio.cambiarEstado(idUsuario, estado);
-  if (!usuario) throw Object.assign(new Error("Usuario no encontrado"), { tipo: "no_encontrado" });
+  if (!["activo", "inactivo"].includes(estado)) throw error("Estado inválido", "validacion");
+  if (Number(idUsuario) === idActor && estado === "inactivo")
+    throw error("No puedes desactivar tu propia cuenta", "validacion");
+  const usuario = await modelo.cambiarEstado(idUsuario, estado);
+  if (!usuario) throw error("Usuario no encontrado", "no_encontrado");
   if (estado === "activo") {
     await enviarCorreo({
       para: usuario.correo,
       asunto: "AsistenciaApp · Cuenta aprobada",
-      html: `<p>Hola ${usuario.nombres}, tu cuenta fue aprobada. Ya puedes iniciar sesión.</p>`,
+      html: `<p>Hola ${escaparHtml(usuario.nombres)}, tu cuenta fue aprobada. Ya puedes iniciar sesión.</p>`,
     });
   }
   await auditar(idActor, `usuario_${estado}`, "usuario", Number(idUsuario));
@@ -56,25 +94,15 @@ async function cambiarEstado(idUsuario, estado, idActor) {
 
 // CU-06 A1: carga masiva de aprendices (filas JSON desde CSV/Excel del frontend)
 async function cargaMasiva(filas, idActor) {
-  if (!Array.isArray(filas) || !filas.length)
-    throw Object.assign(new Error("No se recibieron filas"), { tipo: "validacion" });
+  if (!Array.isArray(filas) || !filas.length) throw error("No se recibieron filas", "validacion");
   const resultados = { creados: 0, errores: [] };
   for (const [i, f] of filas.entries()) {
     try {
-      if (!f.nombres || !f.apellidos || !f.documento || !f.correo)
-        throw new Error("Faltan campos obligatorios (nombres, apellidos, documento, correo)");
+      const cuenta = normalizarCuenta({ ...f, rol: "aprendiz" });
       const temporal = generarContrasenaTemporal();
       const hash = await bcrypt.hash(temporal, 10);
-      await repositorio.crear({
-        nombres: f.nombres, apellidos: f.apellidos, tipoDocumento: "CC",
-        documento: String(f.documento), correo: f.correo, telefono: f.telefono || null,
-        hash, rol: "aprendiz",
-      });
-      await enviarCorreo({
-        para: f.correo,
-        asunto: "AsistenciaApp · Tu cuenta fue creada",
-        html: `<p>Hola ${f.nombres}, tu cuenta está lista.<br/><b>Usuario:</b> ${f.correo}<br/><b>Contraseña temporal:</b> ${temporal}</p>`,
-      });
+      await modelo.crear({ ...cuenta, tipoDocumento: "CC", hash });
+      await enviarCorreo(correoBienvenida(cuenta, temporal));
       resultados.creados++;
     } catch (e) {
       resultados.errores.push({ fila: i + 1, documento: f.documento, error: e.code === "23505" ? "Correo o documento duplicado" : e.message });

@@ -1,4 +1,4 @@
-const repo = require("../repositorios/auditoria");
+const modelo = require("../modelos/auditoria");
 
 /**
  * Registra toda accion sensible (requisito transversal de los CU).
@@ -6,7 +6,7 @@ const repo = require("../repositorios/auditoria");
  */
 async function auditar(idUsuario, accion, entidad = null, idEntidad = null, detalle = null) {
   try {
-    await repo.insertar({ idUsuario, accion, entidad, idEntidad, detalle });
+    await modelo.insertar({ idUsuario, accion, entidad, idEntidad, detalle });
   } catch (e) {
     console.error("Error registrando auditoria:", e.message);
   }

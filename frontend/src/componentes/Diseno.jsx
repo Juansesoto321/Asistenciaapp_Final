@@ -1,60 +1,62 @@
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
 import { api } from "../servicios/api";
+import { conectarTiempoReal } from "../servicios/socket";
 import { useAuth } from "../contexto/AuthContext.jsx";
 import IconoHuella from "./IconoHuella.jsx";
 import IconoSoporte from "./IconoSoporte.jsx";
+import Icono from "./Iconos.jsx";
 
 const SOPORTE = <IconoSoporte />;
+const ico = (nombre) => <Icono nombre={nombre} />;
 
 const MENUS = {
   coordinador: [
-    ["/panel", "📊", "Panel"],
-    ["/usuarios", "👥", "Usuarios"],
-    ["/fichas", "📚", "Fichas"],
-    ["/ambientes", "🏫", "Ambientes y lectores"],
-    ["/horarios", "🗓️", "Horarios"],
-    ["/competencias", "🎯", "Competencias"],
-    ["/sesiones", "🕒", "Sesiones de clase"],
-    ["/justificaciones", "📄", "Justificaciones"],
-    ["/reportes", "🔎", "Reportes"],
-    ["/configuracion", "⚙️", "Configuración"],
-    ["/notificaciones", "🔔", "Notificaciones"],
+    ["/panel", ico("panel"), "Panel"],
+    ["/usuarios", ico("usuarios"), "Usuarios"],
+    ["/fichas", ico("fichas"), "Fichas"],
+    ["/ambientes", ico("ambientes"), "Ambientes y lectores"],
+    ["/horarios", ico("horarios"), "Horarios"],
+    ["/competencias", ico("competencias"), "Competencias"],
+    ["/sesiones", ico("sesiones"), "Sesiones de clase"],
+    ["/justificaciones", ico("justificaciones"), "Justificaciones"],
+    ["/reportes", ico("reportes"), "Reportes"],
+    ["/configuracion", ico("configuracion"), "Configuración"],
+    ["/notificaciones", ico("notificaciones"), "Notificaciones"],
     ["/soporte", SOPORTE, "Soporte"],
   ],
   instructor: [
-    ["/panel", "📊", "Panel"],
-    ["/sesiones", "🕒", "Mis clases de hoy"],
-    ["/fichas", "📚", "Mis fichas"],
-    ["/horarios", "🗓️", "Mis horarios"],
-    ["/competencias", "🎯", "Competencias"],
-    ["/justificaciones", "📄", "Justificaciones"],
-    ["/reportes", "🔎", "Reportes"],
-    ["/notificaciones", "🔔", "Notificaciones"],
+    ["/panel", ico("panel"), "Panel"],
+    ["/sesiones", ico("sesiones"), "Mis clases de hoy"],
+    ["/fichas", ico("fichas"), "Mis fichas"],
+    ["/horarios", ico("horarios"), "Mis horarios"],
+    ["/competencias", ico("competencias"), "Competencias"],
+    ["/justificaciones", ico("justificaciones"), "Justificaciones"],
+    ["/reportes", ico("reportes"), "Reportes"],
+    ["/notificaciones", ico("notificaciones"), "Notificaciones"],
     ["/soporte", SOPORTE, "Soporte"],
   ],
   // Mismas opciones del coordinador salvo "Usuarios": el programador apoya la
   // planeacion academica pero no administra cuentas.
   programador: [
-    ["/panel", "📊", "Panel"],
-    ["/fichas", "📚", "Fichas"],
-    ["/ambientes", "🏫", "Ambientes y lectores"],
-    ["/horarios", "🗓️", "Horarios"],
-    ["/competencias", "🎯", "Competencias"],
-    ["/sesiones", "🕒", "Sesiones de clase"],
-    ["/justificaciones", "📄", "Justificaciones"],
-    ["/reportes", "🔎", "Reportes"],
-    ["/configuracion", "⚙️", "Configuración"],
-    ["/notificaciones", "🔔", "Notificaciones"],
-    ["/perfil", "👤", "Mi perfil"],
+    ["/panel", ico("panel"), "Panel"],
+    ["/fichas", ico("fichas"), "Fichas"],
+    ["/ambientes", ico("ambientes"), "Ambientes y lectores"],
+    ["/horarios", ico("horarios"), "Horarios"],
+    ["/competencias", ico("competencias"), "Competencias"],
+    ["/sesiones", ico("sesiones"), "Sesiones de clase"],
+    ["/justificaciones", ico("justificaciones"), "Justificaciones"],
+    ["/reportes", ico("reportes"), "Reportes"],
+    ["/configuracion", ico("configuracion"), "Configuración"],
+    ["/notificaciones", ico("notificaciones"), "Notificaciones"],
+    ["/perfil", ico("perfil"), "Mi perfil"],
     ["/soporte", SOPORTE, "Soporte"],
   ],
   aprendiz: [
-    ["/panel", "📊", "Panel"],
-    ["/mi-asistencia", "🗒️", "Mi asistencia"],
-    ["/notificaciones", "🔔", "Notificaciones"],
-    ["/perfil", "👤", "Mi perfil"],
+    ["/panel", ico("panel"), "Panel"],
+    ["/mi-asistencia", ico("asistencia"), "Mi asistencia"],
+    ["/notificaciones", ico("notificaciones"), "Notificaciones"],
+    ["/perfil", ico("perfil"), "Mi perfil"],
     ["/soporte", SOPORTE, "Soporte"],
   ],
 };
@@ -69,11 +71,10 @@ export default function Diseno({ children }) {
   useEffect(() => {
     const cargar = () => api("/notificaciones/contador").then((r) => setNotifPendientes(r.pendientes)).catch(() => {});
     cargar();
-    const socket = io();
-    socket.emit("unirse_panel", { rol: sesion.usuario.rol, id: sesion.usuario.id });
+    const socket = conectarTiempoReal();
     socket.on("notificaciones:actualizadas", cargar);
     return () => socket.disconnect();
-  }, [sesion.usuario.id, sesion.usuario.rol]);
+  }, [sesion.usuario.id]);
 
   return (
     <div className="aplicacion">

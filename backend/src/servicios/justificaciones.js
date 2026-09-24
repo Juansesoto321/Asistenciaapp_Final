@@ -2,31 +2,28 @@
  * CU-23 Cargar justificacion (aprendiz, via enlace de 72 horas)
  * CU-24 Validar justificacion (instructor aprueba/rechaza)
  */
-const repo = require("../repositorios/justificaciones");
-const { enTransaccion } = require("../repositorios/transaccion");
+const modelo = require("../modelos/justificaciones");
+const { enTransaccion } = require("../modelos/transaccion");
 const { auditar } = require("./auditoria");
 const { enviarCorreo } = require("./correo");
 const { emitirJustificacionesActualizadas, emitirNotificacionNueva } = require("./tiempoReal");
+const { error } = require("../utilidades/errores");
+const { escaparHtml, textoPlazo } = require("../utilidades/formato");
 
 const TIPOS_VALIDOS = ["cita_medica", "incapacidad_medica", "calamidad_domestica", "diligencia_legal", "duelo", "otro"];
 const TIPOS_SIN_FOTO_OBLIGATORIA = ["calamidad_domestica", "duelo"];
 const FORMATOS_ADJUNTO = /^data:(image\/(jpeg|png|webp)|application\/pdf);base64,/i;
 
-function error(mensaje, tipo) {
-  return Object.assign(new Error(mensaje), { tipo });
-}
-
 // Texto legible del plazo configurado (ej. "5 días" o "18 horas")
-async function textoPlazo() {
-  const horas = await repo.obtenerHorasPlazo();
-  return horas % 24 === 0 ? `${horas / 24} día(s)` : `${horas} horas`;
+async function plazoConfigurado() {
+  return textoPlazo(await modelo.obtenerHorasPlazo());
 }
 
 async function verPorToken(token) {
-  const j = await repo.buscarPorToken(token);
+  const j = await modelo.buscarPorToken(token);
   if (!j) throw error("Enlace de justificación no válido", "no_encontrado");
   if (new Date(j.expira_en) < new Date() && j.estado === "pendiente")
-    throw Object.assign(error(`El plazo de ${await textoPlazo()} para justificar venció`, "vencida"), { vencida: true });
+    throw error(`El plazo de ${await plazoConfigurado()} para justificar venció`, "vencida", { vencida: true });
   return j;
 }
 
@@ -37,12 +34,12 @@ async function enviarPorToken(token, { tipo, descripcion, nombre_archivo, archiv
   if (fotoObligatoria && !archivo_datos) throw error("Adjunta un soporte para este tipo de justificación", "validacion");
   if (archivo_datos && !FORMATOS_ADJUNTO.test(archivo_datos)) throw error("El soporte debe ser JPG, PNG, WEBP o PDF", "validacion");
 
-  const r = await repo.enviarPorToken(token, { tipo, descripcion, nombre_archivo, archivo_datos });
-  if (!r) throw error(`El enlace ya fue usado o el plazo de ${await textoPlazo()} venció`, "vencida");
+  const r = await modelo.enviarPorToken(token, { tipo, descripcion, nombre_archivo, archivo_datos });
+  if (!r) throw error(`El enlace ya fue usado o el plazo de ${await plazoConfigurado()} venció`, "vencida");
 
-  const instr = await repo.buscarInstructorDeAsistencia(r.id_asistencia);
+  const instr = await modelo.buscarInstructorDeAsistencia(r.id_asistencia);
   if (instr) {
-    await repo.crearNotificacion(
+    await modelo.crearNotificacion(
       instr.id_instructor,
       "justificacion",
       "Nueva justificación por revisar",
@@ -55,47 +52,50 @@ async function enviarPorToken(token, { tipo, descripcion, nombre_archivo, archiv
 }
 
 async function listarBandeja(usuario) {
-  return repo.listarBandeja(usuario);
+  return modelo.listarBandeja(usuario);
 }
 
 async function contarPendientes(usuario) {
-  return { pendientes: await repo.contarPendientes(usuario) };
+  return { pendientes: await modelo.contarPendientes(usuario) };
 }
 
 async function obtenerArchivo(idJustificacion, usuario) {
-  if (!(await repo.esPropietario(idJustificacion, usuario)))
+  if (!(await modelo.esPropietario(idJustificacion, usuario)))
     throw error("No tienes permisos para ver este archivo", "prohibido");
-  const j = await repo.obtenerArchivo(idJustificacion);
+  const j = await modelo.obtenerArchivo(idJustificacion);
   if (!j?.archivo_datos) throw error("Sin adjunto", "no_encontrado");
   return j;
 }
 
 async function validarJustificacion(idJustificacion, usuario, { estado, observacion }) {
-  if (!(await repo.esPropietario(idJustificacion, usuario)))
+  if (!(await modelo.esPropietario(idJustificacion, usuario)))
     throw error("No tienes permisos para validar esta justificación", "prohibido");
   if (!["aprobada", "rechazada"].includes(estado)) throw error("Estado inválido", "validacion");
   if (estado === "rechazada" && !observacion?.trim()) throw error("Explica por qué se rechaza la justificación", "validacion");
 
   const { idAsistencia, aprendiz } = await enTransaccion(async (cliente) => {
-    const r = await repo.validar(cliente, idJustificacion, {
+    const r = await modelo.validar(cliente, idJustificacion, {
       estado,
       validadaPor: usuario.id,
       observacion: observacion?.trim() || null,
     });
     if (!r) throw error("La justificación no está pendiente de revisión", "validacion");
 
+    const idAprendiz = await modelo.obtenerAprendizDeAsistencia(cliente, r.id_asistencia);
+
     if (estado === "aprobada") {
-      const idAprendiz = await repo.marcarAsistenciaJustificada(cliente, r.id_asistencia);
-      await repo.registrarCambioAsistencia(cliente, r.id_asistencia, usuario.id);
-      await repo.crearNotificacion(
+      // Solo pasa a "justificada" si sigue como ausente: si el instructor ya la
+      // corrigió a mano (p. ej. a "presente"), no se sobrescribe.
+      const estadoAnterior = await modelo.marcarAsistenciaJustificada(cliente, r.id_asistencia);
+      if (estadoAnterior) await modelo.registrarCambioAsistencia(cliente, r.id_asistencia, estadoAnterior, usuario.id);
+      await modelo.crearNotificacion(
         idAprendiz, "justificacion", "Justificación aprobada",
         "Tu inasistencia quedó marcada como justificada.", cliente
       );
       return { idAsistencia: r.id_asistencia, aprendiz: idAprendiz };
     }
 
-    const idAprendiz = await repo.obtenerAprendizDeAsistencia(cliente, r.id_asistencia);
-    await repo.crearNotificacion(
+    await modelo.crearNotificacion(
       idAprendiz, "justificacion", "Justificación rechazada",
       `Tu justificación fue rechazada. Motivo: ${observacion.trim()}`, cliente
     );
@@ -106,24 +106,24 @@ async function validarJustificacion(idJustificacion, usuario, { estado, observac
   await auditar(usuario.id, `justificacion_${estado}`, "justificacion", Number(idJustificacion));
 
   // Ya se resolvió: baja el contador de pendientes en el panel del instructor (y del admin)
-  const idInstructor = await repo.buscarInstructorDeJustificacion(idAsistencia);
+  const idInstructor = await modelo.buscarInstructorDeJustificacion(idAsistencia);
   emitirJustificacionesActualizadas(idInstructor);
 
   // Correo con el resultado (y el motivo, si fue rechazada)
-  const u = await repo.buscarUsuarioParaCorreo(aprendiz);
+  const u = await modelo.buscarUsuarioParaCorreo(aprendiz);
   if (estado === "aprobada") {
     await enviarCorreo({
       para: u.correo,
       asunto: "AsistenciaApp · Justificación aprobada",
-      html: `<p>Hola ${u.nombres},</p><p>Tu justificación fue <b>aprobada</b>. La inasistencia quedó marcada como "justificada".</p>`,
+      html: `<p>Hola ${escaparHtml(u.nombres)},</p><p>Tu justificación fue <b>aprobada</b>. La inasistencia quedó marcada como "justificada".</p>`,
     });
   } else {
     await enviarCorreo({
       para: u.correo,
       asunto: "AsistenciaApp · Justificación rechazada",
-      html: `<p>Hola ${u.nombres},</p>
+      html: `<p>Hola ${escaparHtml(u.nombres)},</p>
              <p>Tu justificación fue <b>rechazada</b>.</p>
-             <p><b>Motivo:</b> ${observacion.trim()}</p>
+             <p><b>Motivo:</b> ${escaparHtml(observacion.trim())}</p>
              <p>Puedes ver el detalle desde "Mi asistencia" en la plataforma.</p>`,
     });
   }

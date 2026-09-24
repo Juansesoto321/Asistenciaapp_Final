@@ -1,26 +1,36 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./contexto/AuthContext.jsx";
 import Diseno from "./componentes/Diseno.jsx";
-import IniciarSesion from "./paginas/IniciarSesion.jsx";
-import Registrarse from "./paginas/Registrarse.jsx";
-import Restablecer from "./paginas/Restablecer.jsx";
-import JustificarPublico from "./paginas/JustificarPublico.jsx";
-import Panel from "./paginas/Panel.jsx";
-import Usuarios from "./paginas/Usuarios.jsx";
-import Fichas from "./paginas/Fichas.jsx";
-import DetalleFicha from "./paginas/DetalleFicha.jsx";
-import Ambientes from "./paginas/Ambientes.jsx";
-import Horarios from "./paginas/Horarios.jsx";
-import Competencias from "./paginas/Competencias.jsx";
-import Sesiones from "./paginas/Sesiones.jsx";
-import SesionEnVivo from "./paginas/SesionEnVivo.jsx";
-import Justificaciones from "./paginas/Justificaciones.jsx";
-import MiAsistencia from "./paginas/MiAsistencia.jsx";
-import Reportes from "./paginas/Reportes.jsx";
-import Configuracion from "./paginas/Configuracion.jsx";
-import Soporte from "./paginas/Soporte.jsx";
-import Notificaciones from "./paginas/Notificaciones.jsx";
-import Perfil from "./paginas/Perfil.jsx";
+
+// Acceso público
+import IniciarSesion from "./paginas/acceso/IniciarSesion.jsx";
+import Registrarse from "./paginas/acceso/Registrarse.jsx";
+import Restablecer from "./paginas/acceso/Restablecer.jsx";
+import JustificarPublico from "./paginas/acceso/JustificarPublico.jsx";
+// General (todos los roles)
+import Panel from "./paginas/general/Panel.jsx";
+import Notificaciones from "./paginas/general/Notificaciones.jsx";
+import Soporte from "./paginas/general/Soporte.jsx";
+import Perfil from "./paginas/general/Perfil.jsx";
+// Planeación académica
+import Fichas from "./paginas/academico/Fichas.jsx";
+import DetalleFicha from "./paginas/academico/DetalleFicha.jsx";
+import Ambientes from "./paginas/academico/Ambientes.jsx";
+import Horarios from "./paginas/academico/Horarios.jsx";
+import Competencias from "./paginas/academico/Competencias.jsx";
+// Asistencia
+import Sesiones from "./paginas/asistencia/Sesiones.jsx";
+import SesionEnVivo from "./paginas/asistencia/SesionEnVivo.jsx";
+import Justificaciones from "./paginas/asistencia/Justificaciones.jsx";
+import MiAsistencia from "./paginas/asistencia/MiAsistencia.jsx";
+import Reportes from "./paginas/asistencia/Reportes.jsx";
+// Administración
+import Usuarios from "./paginas/administracion/Usuarios.jsx";
+import Configuracion from "./paginas/administracion/Configuracion.jsx";
+
+// Quién entra a cada grupo de pantallas (el backend vuelve a validarlo)
+const COORDINACION = ["coordinador", "programador"];
+const PERSONAL = [...COORDINACION, "instructor"];
 
 function Protegida({ children, roles }) {
   const { sesion } = useAuth();
@@ -38,21 +48,25 @@ export default function App() {
       <Route path="/justificar/:token" element={<JustificarPublico />} />
 
       <Route path="/panel" element={<Protegida><Panel /></Protegida>} />
-      <Route path="/usuarios" element={<Protegida roles={["coordinador"]}><Usuarios /></Protegida>} />
-      <Route path="/fichas" element={<Protegida roles={["coordinador","programador","instructor"]}><Fichas /></Protegida>} />
-      <Route path="/fichas/:id" element={<Protegida roles={["coordinador","programador","instructor"]}><DetalleFicha /></Protegida>} />
-      <Route path="/ambientes" element={<Protegida roles={["coordinador","programador"]}><Ambientes /></Protegida>} />
-      <Route path="/horarios" element={<Protegida roles={["coordinador","programador","instructor"]}><Horarios /></Protegida>} />
-      <Route path="/competencias" element={<Protegida roles={["coordinador","programador","instructor"]}><Competencias /></Protegida>} />
-      <Route path="/sesiones" element={<Protegida roles={["instructor","coordinador","programador"]}><Sesiones /></Protegida>} />
-      <Route path="/sesiones/:id" element={<Protegida roles={["instructor","coordinador","programador"]}><SesionEnVivo /></Protegida>} />
-      <Route path="/justificaciones" element={<Protegida roles={["instructor","coordinador","programador"]}><Justificaciones /></Protegida>} />
-      <Route path="/mi-asistencia" element={<Protegida roles={["aprendiz"]}><MiAsistencia /></Protegida>} />
-      <Route path="/reportes" element={<Protegida roles={["coordinador","programador","instructor"]}><Reportes /></Protegida>} />
-      <Route path="/configuracion" element={<Protegida roles={["coordinador","programador"]}><Configuracion /></Protegida>} />
-      <Route path="/soporte" element={<Protegida><Soporte /></Protegida>} />
       <Route path="/notificaciones" element={<Protegida><Notificaciones /></Protegida>} />
+      <Route path="/soporte" element={<Protegida><Soporte /></Protegida>} />
       <Route path="/perfil" element={<Protegida><Perfil /></Protegida>} />
+
+      <Route path="/fichas" element={<Protegida roles={PERSONAL}><Fichas /></Protegida>} />
+      <Route path="/fichas/:id" element={<Protegida roles={PERSONAL}><DetalleFicha /></Protegida>} />
+      <Route path="/ambientes" element={<Protegida roles={COORDINACION}><Ambientes /></Protegida>} />
+      <Route path="/horarios" element={<Protegida roles={PERSONAL}><Horarios /></Protegida>} />
+      <Route path="/competencias" element={<Protegida roles={PERSONAL}><Competencias /></Protegida>} />
+
+      <Route path="/sesiones" element={<Protegida roles={PERSONAL}><Sesiones /></Protegida>} />
+      <Route path="/sesiones/:id" element={<Protegida roles={PERSONAL}><SesionEnVivo /></Protegida>} />
+      <Route path="/justificaciones" element={<Protegida roles={PERSONAL}><Justificaciones /></Protegida>} />
+      <Route path="/mi-asistencia" element={<Protegida roles={["aprendiz"]}><MiAsistencia /></Protegida>} />
+      <Route path="/reportes" element={<Protegida roles={PERSONAL}><Reportes /></Protegida>} />
+
+      <Route path="/usuarios" element={<Protegida roles={["coordinador"]}><Usuarios /></Protegida>} />
+      <Route path="/configuracion" element={<Protegida roles={COORDINACION}><Configuracion /></Protegida>} />
+
       <Route path="*" element={<Navigate to="/panel" replace />} />
     </Routes>
   );

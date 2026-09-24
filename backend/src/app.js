@@ -3,9 +3,9 @@
  * Sistema de Control de Asistencia con Lector de Huella Digital · SENA 2026
  *
  * Aqui solo se configuran middlewares, se montan las rutas y se levanta el
- * servidor. La logica vive en: rutas -> controladores -> servicios -> repositorios.
+ * servidor. La logica vive en: rutas -> controladores -> servicios -> modelos.
  */
-require("dotenv").config();
+const { origenesPermitidos } = require("./config/entorno"); // siempre primero: carga el .env
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
@@ -13,23 +13,19 @@ const tiempoReal = require("./servicios/tiempoReal");
 const tareasProgramadas = require("./servicios/tareasProgramadas");
 const logs = require("./servicios/logs");
 const { manejadorErrores, rutaNoEncontrada } = require("./middleware/manejadorErrores");
-
-// Red de seguridad: un error sin capturar en cualquier punto no debe tumbar
-// el servidor. Queda registrado para poder revisarlo despues.
-process.on("unhandledRejection", (err) => {
-  console.error("Rechazo no manejado:", err);
-  logs.registrar({ mensaje: `Rechazo no manejado: ${err?.message || err}`, traza: err?.stack });
-});
-process.on("uncaughtException", (err) => {
-  console.error("Excepción no capturada:", err);
-  logs.registrar({ mensaje: `Excepción no capturada: ${err?.message || err}`, traza: err?.stack });
-});
+const { encabezadosSeguridad } = require("./middleware/seguridad");
 
 const app = express();
 const servidor = http.createServer(app);
 tiempoReal.inicializar(servidor);
 
-app.use(cors());
+// Detras de nginx (Docker) o del proxy de Vite, la IP real del cliente llega
+// en X-Forwarded-For; sin esto el limite de peticiones veria una sola IP.
+app.set("trust proxy", "loopback, uniquelocal");
+app.disable("x-powered-by");
+
+app.use(encabezadosSeguridad);
+app.use(cors({ origin: origenesPermitidos }));
 app.use(express.json({ limit: "10mb" })); // adjuntos de justificacion en base64
 
 // Salud del servicio (publica)
@@ -59,10 +55,26 @@ app.use("/iclock", require("./rutas/adms"));
 app.use(rutaNoEncontrada);
 app.use(manejadorErrores);
 
-tareasProgramadas.iniciar();
+function iniciar(puerto = process.env.PUERTO || 4000) {
+  // Red de seguridad: un error sin capturar en cualquier punto no debe tumbar
+  // el servidor. Queda registrado para poder revisarlo despues.
+  process.on("unhandledRejection", (err) => {
+    console.error("Rechazo no manejado:", err);
+    logs.registrar({ mensaje: `Rechazo no manejado: ${err?.message || err}`, traza: err?.stack });
+  });
+  process.on("uncaughtException", (err) => {
+    console.error("Excepción no capturada:", err);
+    logs.registrar({ mensaje: `Excepción no capturada: ${err?.message || err}`, traza: err?.stack });
+  });
 
-const PUERTO = process.env.PUERTO || 4000;
-servidor.listen(PUERTO, () => {
-  console.log(`\nAsistenciaApp backend escuchando en http://localhost:${PUERTO}`);
-  console.log("Socket.IO activo para supervisión en tiempo real\n");
-});
+  tareasProgramadas.iniciar();
+  servidor.listen(puerto, () => {
+    console.log(`\nAsistenciaApp backend escuchando en http://localhost:${puerto}`);
+    console.log("Socket.IO activo para supervisión en tiempo real\n");
+  });
+}
+
+// `node src/app.js` levanta el servidor; las pruebas solo importan la app.
+if (require.main === module) iniciar();
+
+module.exports = { app, servidor, iniciar };

@@ -1,25 +1,60 @@
 /**
  * Socket.IO: canal en tiempo real para la vista de supervision del
  * instructor (CU-14). Cada sesion de clase es una "sala".
+ *
+ * Toda conexión debe traer el mismo token JWT que usa la API: el rol y el id
+ * salen del token, nunca de lo que diga el cliente. Sin esto cualquiera podía
+ * unirse a la sala de una clase y ver en vivo quién marcaba asistencia.
  */
+const jwt = require("jsonwebtoken");
+const { origenesPermitidos } = require("../config/entorno");
+const sesionesModelo = require("../modelos/sesiones");
+
+const ROLES_GESTION = ["coordinador", "programador"];
+const ROLES_SUPERVISION = ["instructor", ...ROLES_GESTION];
+
 let io = null;
+
+function autenticarSocket(socket, next) {
+  try {
+    socket.usuario = jwt.verify(socket.handshake.auth?.token, process.env.JWT_SECRETO);
+    next();
+  } catch {
+    next(new Error("No autenticado"));
+  }
+}
+
+async function puedeSupervisar(usuario, idSesion) {
+  if (ROLES_GESTION.includes(usuario.rol)) return true;
+  if (usuario.rol !== "instructor") return false;
+  return sesionesModelo.esInstructorDeSesion(idSesion, usuario.id);
+}
 
 function inicializar(servidorHttp) {
   const { Server } = require("socket.io");
-  io = new Server(servidorHttp, { cors: { origin: "*" } });
+  io = new Server(servidorHttp, { cors: { origin: origenesPermitidos } });
+  io.use(autenticarSocket);
+
   io.on("connection", (socket) => {
-    socket.on("unirse_sesion", (idSesion) => socket.join(`sesion_${idSesion}`));
-    socket.on("salir_sesion", (idSesion) => socket.leave(`sesion_${idSesion}`));
-    // Panel de cualquier rol: sala personal (badge de notificaciones) y, para
-    // quienes gestionan, ademas las salas del contador de justificaciones.
-    socket.on("unirse_panel", ({ rol, id }) => {
-      socket.join(`usuario_${id}`);
-      if (rol === "instructor") socket.join(`instructor_${id}`);
-      else if (rol === "coordinador" || rol === "programador") {
-        socket.join("justificaciones_admin");
-        socket.join("coordinadores");
+    const { id, rol } = socket.usuario;
+    // Sala personal (badge de notificaciones) y, para quienes gestionan,
+    // las salas del contador de justificaciones.
+    socket.join(`usuario_${id}`);
+    if (rol === "instructor") socket.join(`instructor_${id}`);
+    if (ROLES_GESTION.includes(rol)) {
+      socket.join("justificaciones_admin");
+      socket.join("coordinadores");
+    }
+
+    socket.on("unirse_sesion", async (idSesion) => {
+      if (!ROLES_SUPERVISION.includes(rol) || !Number.isInteger(Number(idSesion))) return;
+      try {
+        if (await puedeSupervisar(socket.usuario, Number(idSesion))) socket.join(`sesion_${idSesion}`);
+      } catch (e) {
+        console.error("No se pudo verificar el acceso a la sesión en vivo:", e.message);
       }
     });
+    socket.on("salir_sesion", (idSesion) => socket.leave(`sesion_${idSesion}`));
   });
   return io;
 }

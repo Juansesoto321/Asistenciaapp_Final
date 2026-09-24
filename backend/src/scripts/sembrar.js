@@ -2,29 +2,29 @@
  * Siembra la base de datos: esquema + datos de demostracion.
  * Uso: npm run sembrar
  */
-require("dotenv").config();
+require("../config/entorno");
 const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
 
 const CARPETA_DB = path.join(__dirname, "../../../db");
+const CARPETA_MIGRACIONES = path.join(CARPETA_DB, "migraciones");
 
 /**
- * Aplica el esquema y despues TODAS las migraciones (db/migracion_*.sql, en
- * orden alfabetico). Todas son idempotentes, asi que sirve igual para una base
- * nueva que para una existente: ejecutar `npm run sembrar` la deja al dia.
+ * Aplica el esquema y despues TODAS las migraciones (db/migraciones/*.sql, en
+ * orden de numeracion: 001_, 002_...). Todas son idempotentes, asi que sirve
+ * igual para una base nueva que para una existente: ejecutar `npm run sembrar`
+ * la deja al dia.
  */
 async function aplicarEsquema() {
   console.log("Creando esquema...");
   await pool.query(fs.readFileSync(path.join(CARPETA_DB, "init.sql"), "utf8"));
 
-  const migraciones = fs.readdirSync(CARPETA_DB)
-    .filter((f) => f.startsWith("migracion_") && f.endsWith(".sql"))
-    .sort();
+  const migraciones = fs.readdirSync(CARPETA_MIGRACIONES).filter((f) => f.endsWith(".sql")).sort();
   for (const archivo of migraciones) {
     console.log(`  migración: ${archivo}`);
-    await pool.query(fs.readFileSync(path.join(CARPETA_DB, archivo), "utf8"));
+    await pool.query(fs.readFileSync(path.join(CARPETA_MIGRACIONES, archivo), "utf8"));
   }
 }
 
@@ -136,4 +136,7 @@ LECTOR SIMULADO
   await pool.end();
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// `npm run sembrar` ejecuta todo; las pruebas solo reutilizan aplicarEsquema()
+if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
+
+module.exports = { aplicarEsquema };

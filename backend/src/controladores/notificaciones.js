@@ -25,4 +25,12 @@ async function marcarLeida(req, res, next) {
   }
 }
 
-module.exports = { listar, contador, marcarLeida };
+async function marcarTodasLeidas(req, res, next) {
+  try {
+    res.json({ marcadas: await servicio.marcarTodasComoLeidas(req.usuario.id) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { listar, contador, marcarLeida, marcarTodasLeidas };

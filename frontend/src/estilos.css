@@ -215,3 +215,37 @@ table.tabla { width: 100%; border-collapse: collapse; background: var(--blanco);
 .bloque-clase .sin-asignar { color: var(--tinta-suave); font-style: italic; }
 
 .dia-hoy { background: var(--azul-suave); }
+
+/* ---------- Estados de carga y diálogos ---------- */
+.giro {
+  width: 18px; height: 18px; border-radius: 50%; display: inline-block;
+  vertical-align: -4px; margin-right: 10px;
+  border: 2.5px solid var(--violeta-100); border-top-color: var(--violeta-600);
+  animation: girar .8s linear infinite;
+}
+.giro.grande { width: 44px; height: 44px; border-width: 4px; margin: 0 auto 16px; display: block; }
+@keyframes girar { to { transform: rotate(360deg); } }
+.cargando { display: flex; align-items: center; justify-content: center; }
+
+.boton.peligro-solido { background: var(--rojo); color: #fff; }
+.modal-confirmar { max-width: 440px; }
+.texto-confirmar { color: var(--tinta-suave); font-size: 14px; line-height: 1.5; margin-top: 6px; }
+
+.superposicion.bloqueante { z-index: 60; }
+.aviso-proceso {
+  background: var(--blanco); border-radius: var(--radio); padding: 30px 40px;
+  text-align: center; max-width: 340px; box-shadow: var(--sombra);
+}
+.aviso-proceso h2 { font-size: 18px; margin-bottom: 6px; }
+.aviso-proceso p { color: var(--tinta-suave); font-size: 14px; }
+
+/* ---------- Pantallas pequeñas (el enlace de justificación se abre en el celular) ---------- */
+@media (max-width: 600px) {
+  .tarjeta-acceso { padding: 24px 20px; border-radius: 16px; }
+  .contenido { padding: 14px; }
+  table.tabla { display: block; overflow-x: auto; white-space: nowrap; }
+  .acciones-modal { flex-wrap: wrap; }
+  .acciones-modal .boton { flex: 1 1 auto; }
+  .cabecera-pagina h1 { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .giro { animation-duration: 2s; } }

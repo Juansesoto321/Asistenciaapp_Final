@@ -1,54 +1,67 @@
 const crypto = require("crypto");
-const repositorio = require("../repositorios/academico");
+const modelo = require("../modelos/academico");
 const { auditar } = require("./auditoria");
+const { error } = require("../utilidades/errores");
 
 const ESTADOS_MATRICULA = ["activa", "retirada", "finalizada"];
 
-function error(mensaje, tipo) {
-  return Object.assign(new Error(mensaje), { tipo });
-}
-
 async function obtenerPeriodos() {
-  return repositorio.listarPeriodos();
+  return modelo.listarPeriodos();
 }
 
 async function obtenerInstructores() {
-  return repositorio.listarInstructores();
+  return modelo.listarInstructores();
 }
 
 async function obtenerFichas(usuario) {
-  return repositorio.listarFichas(usuario);
+  return modelo.listarFichas(usuario);
 }
 
 async function crearPeriodo(datos) {
-  return repositorio.crearPeriodo(datos);
+  return modelo.crearPeriodo(datos);
 }
 
 async function crearFicha(datos, usuario) {
-  const ficha = await repositorio.crearFicha(datos);
+  const ficha = await modelo.crearFicha(datos);
   await auditar(usuario.id, "crear_ficha", "ficha", ficha.id_ficha);
   return ficha;
 }
 
 async function obtenerHorarios(usuario, filtros) {
-  return repositorio.listarHorarios(usuario, filtros);
+  return modelo.listarHorarios(usuario, filtros);
+}
+
+/** Valida lo mínimo antes de ir a la base de datos, con mensajes claros. */
+function validarHorario(h) {
+  if (!h.id_ficha || !h.id_ambiente || !h.id_instructor || !h.id_periodo)
+    throw error("Selecciona ficha, ambiente, instructor y periodo", "validacion");
+  const dia = Number(h.dia_semana);
+  if (h.dia_semana === "" || h.dia_semana === null || !Number.isInteger(dia) || dia < 0 || dia > 6)
+    throw error("Selecciona un día de la semana válido", "validacion");
+  if (!h.hora_inicio || !h.hora_fin) throw error("Indica la hora de inicio y la hora de fin", "validacion");
+  // Formato HH:MM(:SS) con ceros a la izquierda: la comparación de texto sirve
+  if (String(h.hora_fin) <= String(h.hora_inicio))
+    throw error("La hora de fin debe ser posterior a la hora de inicio", "validacion");
+}
+
+function errorDeConflicto(conflicto) {
+  return error(
+    `Conflicto de ${conflicto.tipo}: se cruza con la ficha ${conflicto.numero_ficha} en ese horario`,
+    "conflicto_horario"
+  );
 }
 
 async function crearHorario(datos, usuario) {
-  const conflicto = await repositorio.buscarConflictoHorario(datos);
-  if (conflicto) {
-    throw Object.assign(
-      new Error(`Conflicto de ${conflicto.tipo}: se cruza con la ficha ${conflicto.numero_ficha} en ese horario`),
-      { tipo: "conflicto_horario" }
-    );
-  }
-  const horario = await repositorio.crearHorario(datos);
+  validarHorario(datos);
+  const conflicto = await modelo.buscarConflictoHorario(datos);
+  if (conflicto) throw errorDeConflicto(conflicto);
+  const horario = await modelo.crearHorario(datos);
   await auditar(usuario.id, "crear_horario", "horario", horario.id_horario);
   return horario;
 }
 
 async function editarHorario(id, datos, usuario) {
-  const actual = await repositorio.buscarHorario(id);
+  const actual = await modelo.buscarHorario(id);
   if (!actual) throw error("Horario no encontrado", "no_encontrado");
 
   // Campos no enviados conservan su valor actual
@@ -64,42 +77,53 @@ async function editarHorario(id, datos, usuario) {
     id_tematica: datos.id_tematica !== undefined ? datos.id_tematica : actual.id_tematica,
   };
 
-  const conflicto = await repositorio.buscarConflictoHorario(nuevo, Number(id));
-  if (conflicto) {
-    throw error(
-      `Conflicto de ${conflicto.tipo}: se cruza con la ficha ${conflicto.numero_ficha} en ese horario`,
-      "conflicto_horario"
-    );
-  }
+  validarHorario(nuevo);
+  const conflicto = await modelo.buscarConflictoHorario(nuevo, Number(id));
+  if (conflicto) throw errorDeConflicto(conflicto);
 
-  const horario = await repositorio.editarHorario(id, nuevo);
+  const horario = await modelo.editarHorario(id, nuevo);
   await auditar(usuario.id, "editar_horario", "horario", Number(id), nuevo);
   return horario;
 }
 
 async function eliminarHorario(id, usuario) {
-  await repositorio.eliminarHorario(id);
+  const eliminado = await modelo.eliminarHorario(id);
+  if (!eliminado) throw error("Horario no encontrado", "no_encontrado");
   await auditar(usuario.id, "eliminar_horario", "horario", Number(id));
 }
 
 // ---------- MATRICULAS (CU-06) ----------
-async function obtenerMatriculasDeFicha(idFicha) {
-  return repositorio.listarMatriculasDeFicha(idFicha);
+// La lista trae documento y correo de cada aprendiz: el instructor solo ve
+// las fichas donde es titular o dicta alguna clase (RNF-06).
+async function obtenerMatriculasDeFicha(idFicha, usuario) {
+  if (usuario.rol === "instructor" && !(await modelo.instructorDictaEnFicha(idFicha, usuario.id)))
+    throw error("Solo puedes ver las fichas donde eres instructor", "prohibido");
+  return modelo.listarMatriculasDeFicha(idFicha);
+}
+
+function motivoMatriculaFallida(e) {
+  if (e.constraint === "idx_matricula_activa_unica") return "El aprendiz ya tiene una matrícula activa en otra ficha";
+  if (e.code === "23505") return "Ya está matriculado en esta ficha";
+  if (e.code === "23503") return "La ficha no existe";
+  return null;
 }
 
 async function matricularAprendices(idFicha, idsAprendices, usuario) {
+  if (!Array.isArray(idsAprendices) || !idsAprendices.length)
+    throw error("Selecciona al menos un aprendiz", "validacion");
   const resultados = { matriculados: 0, errores: [] };
-  for (const id of idsAprendices || []) {
+  for (const id of idsAprendices) {
     try {
-      await repositorio.matricularAprendiz(id, idFicha);
+      const matriculado = await modelo.matricularAprendiz(id, idFicha);
+      if (!matriculado) {
+        resultados.errores.push({ id_aprendiz: id, error: "El usuario no existe o no es aprendiz" });
+        continue;
+      }
       resultados.matriculados++;
     } catch (e) {
-      resultados.errores.push({
-        id_aprendiz: id,
-        error: e.constraint === "idx_matricula_activa_unica"
-          ? "El aprendiz ya tiene una matrícula activa en otra ficha"
-          : "Ya está matriculado en esta ficha",
-      });
+      const motivo = motivoMatriculaFallida(e);
+      if (!motivo) throw e; // error inesperado: que lo registre el manejador central
+      resultados.errores.push({ id_aprendiz: id, error: motivo });
     }
   }
   await auditar(usuario.id, "matricular_aprendices", "ficha", Number(idFicha), resultados);
@@ -108,32 +132,33 @@ async function matricularAprendices(idFicha, idsAprendices, usuario) {
 
 async function cambiarEstadoMatricula(id, estado, usuario) {
   if (!ESTADOS_MATRICULA.includes(estado)) throw error("Estado inválido", "validacion");
-  await repositorio.cambiarEstadoMatricula(id, estado);
+  const actualizada = await modelo.cambiarEstadoMatricula(id, estado);
+  if (!actualizada) throw error("Matrícula no encontrada", "no_encontrado");
   await auditar(usuario.id, "cambiar_matricula", "matricula", Number(id), { estado });
 }
 
 // ---------- AMBIENTES Y DISPOSITIVOS (CU-07, CU-09) ----------
 async function obtenerAmbientes() {
-  return repositorio.listarAmbientes();
+  return modelo.listarAmbientes();
 }
 
 async function crearAmbiente(datos, usuario) {
-  const ambiente = await repositorio.crearAmbiente(datos);
+  const ambiente = await modelo.crearAmbiente(datos);
   await auditar(usuario.id, "crear_ambiente", "ambiente", ambiente.id_ambiente);
   return ambiente;
 }
 
 // Asociar lector al ambiente: genera la clave API que usara el dispositivo
-async function asociarDispositivo(idAmbiente, { serial, modelo }, usuario) {
+async function asociarDispositivo(idAmbiente, { serial, modelo: modeloLector }, usuario) {
   const claveApi = crypto.randomBytes(16).toString("hex");
-  const dispositivo = await repositorio.crearDispositivo({ idAmbiente, serial, modelo, claveApi });
+  const dispositivo = await modelo.crearDispositivo({ idAmbiente, serial, modelo: modeloLector, claveApi });
   await auditar(usuario.id, "registrar_dispositivo", "dispositivo", dispositivo.id_dispositivo);
   // La clave se muestra UNA sola vez, para configurar el lector/simulador
   return { ...dispositivo, clave_api: claveApi };
 }
 
 async function obtenerDispositivos() {
-  return repositorio.listarDispositivos();
+  return modelo.listarDispositivos();
 }
 
 module.exports = {

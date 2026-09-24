@@ -1,0 +1,245 @@
+/**
+ * Pruebas de integración: la API real (rutas -> controladores -> servicios ->
+ * modelos) contra una base PostgreSQL de pruebas. Recorren el ciclo completo
+ * de una clase y verifican cada error corregido para que no vuelva a aparecer.
+ *
+ * Las pruebas van en orden: cada una parte del estado que dejó la anterior.
+ */
+require("../preparar");
+const { test, before, after } = require("node:test");
+const assert = require("node:assert/strict");
+const entorno = require("./entorno");
+
+let e = null;
+const tokens = {};
+let idSesion = null;
+const LECTOR = { "x-serial": "LECTOR-PRUEBA", "x-clave-api": "clave-de-prueba" };
+
+before(async () => {
+  e = await entorno.iniciar();
+  if (!e) return;
+  for (const rol of ["coordinador", "instructor", "otro", "ana"]) {
+    tokens[rol] = await e.iniciarSesionComo(`${rol}@prueba.co`);
+  }
+});
+
+after(async () => {
+  await entorno.detener();
+});
+
+/** Omite la prueba si no hay PostgreSQL (en vez de fallar). */
+function prueba(nombre, cuerpo) {
+  test(nombre, async (t) => {
+    if (!e) return t.skip("PostgreSQL no disponible");
+    await cuerpo(t);
+  });
+}
+
+// ---------- Autenticación ----------
+
+prueba("login correcto devuelve token y rol; incorrecto responde 401 genérico", async () => {
+  const ok = await e.peticion("POST", "/api/auth/login", { cuerpo: { correo: "ANA@prueba.co ", contrasena: e.CONTRASENA } });
+  assert.equal(ok.estado, 200);
+  assert.equal(ok.datos.usuario.rol, "aprendiz");
+
+  const mal = await e.peticion("POST", "/api/auth/login", { cuerpo: { correo: "nadie@prueba.co", contrasena: "x" } });
+  assert.equal(mal.estado, 401);
+  assert.equal(mal.datos.mensaje, "Correo o contraseña incorrectos");
+});
+
+prueba("5 intentos fallidos bloquean la cuenta; al vencer el bloqueo el conteo vuelve a cero", async () => {
+  const intentar = () => e.peticion("POST", "/api/auth/login", { cuerpo: { correo: "dora@prueba.co", contrasena: "Mala1234" } });
+  for (let i = 0; i < 4; i++) assert.equal((await intentar()).estado, 401);
+  assert.match((await intentar()).datos.mensaje, /bloqueada/i);
+  assert.equal((await intentar()).estado, 403); // bloqueada
+
+  // Simula que pasaron los 15 minutos
+  await e.pool.query("UPDATE usuario SET bloqueado_hasta = NOW() - INTERVAL '1 minute' WHERE correo = 'dora@prueba.co'");
+  // Error corregido: antes el primer fallo tras el bloqueo volvía a bloquear
+  for (let i = 0; i < 4; i++) {
+    const r = await intentar();
+    assert.equal(r.estado, 401);
+    assert.doesNotMatch(r.datos.mensaje, /bloqueada/i);
+  }
+  // ...y el quinto fallo nuevo sí vuelve a bloquear
+  assert.match((await intentar()).datos.mensaje, /bloqueada/i);
+  assert.equal((await intentar()).estado, 403);
+});
+
+prueba("el registro sin documento responde 400 (antes era un error 500)", async () => {
+  const r = await e.peticion("POST", "/api/auth/registro", {
+    cuerpo: { nombres: "Sin", apellidos: "Documento", correo: "sin@prueba.co", contrasena: "Segura123", rol: "aprendiz" },
+  });
+  assert.equal(r.estado, 400);
+});
+
+// ---------- Horarios ----------
+
+prueba("un horario que se cruza con otro del mismo ambiente se rechaza", async () => {
+  const r = await e.peticion("POST", "/api/horarios", {
+    token: tokens.coordinador,
+    cuerpo: {
+      id_ficha: e.ids.ficha, id_ambiente: e.ids.ambiente, id_instructor: e.ids.otroInstructor,
+      id_periodo: e.ids.periodo, dia_semana: e.ids.diaDeHoy, hora_inicio: "08:00", hora_fin: "10:00",
+    },
+  });
+  assert.equal(r.estado, 400);
+  assert.match(r.datos.mensaje, /Conflicto de ambiente/);
+});
+
+prueba("un horario que termina antes de empezar se rechaza con un mensaje claro", async () => {
+  const r = await e.peticion("POST", "/api/horarios", {
+    token: tokens.coordinador,
+    cuerpo: {
+      id_ficha: e.ids.ficha, id_ambiente: e.ids.ambiente, id_instructor: e.ids.otroInstructor,
+      id_periodo: e.ids.periodo, dia_semana: 1, hora_inicio: "10:00", hora_fin: "08:00",
+    },
+  });
+  assert.equal(r.estado, 400);
+  assert.match(r.datos.mensaje, /hora de fin/);
+});
+
+// ---------- Sesión de clase y marcación ----------
+
+prueba("el instructor titular inicia la sesión de hoy; otro instructor no puede", async () => {
+  const ajeno = await e.peticion("POST", "/api/sesiones/iniciar", { token: tokens.otro, cuerpo: { id_horario: e.ids.horario } });
+  assert.equal(ajeno.estado, 403);
+
+  const r = await e.peticion("POST", "/api/sesiones/iniciar", { token: tokens.instructor, cuerpo: { id_horario: e.ids.horario } });
+  assert.equal(r.estado, 200);
+  idSesion = r.datos.id_sesion;
+  assert.ok(idSesion);
+});
+
+prueba("el detalle de la sesión solo lo ve el personal (antes cualquier aprendiz podía)", async () => {
+  assert.equal((await e.peticion("GET", `/api/sesiones/${idSesion}`, { token: tokens.ana })).estado, 403);
+  assert.equal((await e.peticion("GET", `/api/sesiones/${idSesion}`, { token: tokens.otro })).estado, 403);
+  const r = await e.peticion("GET", `/api/sesiones/${idSesion}`, { token: tokens.coordinador });
+  assert.equal(r.estado, 200);
+  assert.equal(r.datos.aprendices.length, 2);
+});
+
+prueba("un id que no es número responde 400 (antes era un error 500)", async () => {
+  assert.equal((await e.peticion("GET", "/api/sesiones/abc", { token: tokens.coordinador })).estado, 400);
+});
+
+prueba("huella enrolada marca una vez; la segunda es duplicada; una desconocida no se reconoce", async () => {
+  const enrolar = await e.peticion("POST", "/api/biometria/enrolar", {
+    token: tokens.instructor,
+    cuerpo: { id_aprendiz: e.ids.aprendiz, acepta_consentimiento: true, lectura1: "dedo-ana", lectura2: "dedo-ana" },
+  });
+  assert.equal(enrolar.estado, 201);
+
+  const primera = await e.peticion("POST", "/api/lector/marcacion", { encabezados: LECTOR, cuerpo: { lectura: "dedo-ana" } });
+  assert.equal(primera.estado, 200);
+  assert.equal(primera.datos.resultado, "ok");
+
+  const segunda = await e.peticion("POST", "/api/lector/marcacion", { encabezados: LECTOR, cuerpo: { lectura: "dedo-ana" } });
+  assert.equal(segunda.datos.resultado, "duplicada");
+
+  const extrana = await e.peticion("POST", "/api/lector/marcacion", { encabezados: LECTOR, cuerpo: { lectura: "dedo-desconocido" } });
+  assert.equal(extrana.estado, 404);
+  assert.equal(extrana.datos.resultado, "no_reconocida");
+});
+
+prueba("un lector con clave incorrecta no puede marcar", async () => {
+  const r = await e.peticion("POST", "/api/lector/marcacion", {
+    encabezados: { "x-serial": "LECTOR-PRUEBA", "x-clave-api": "otra" }, cuerpo: { lectura: "dedo-ana" },
+  });
+  assert.equal(r.estado, 401);
+});
+
+prueba("el registro manual de un aprendiz que no es de la ficha se rechaza", async () => {
+  const r = await e.peticion("POST", `/api/sesiones/${idSesion}/asistencia-manual`, {
+    token: tokens.instructor, cuerpo: { id_aprendiz: e.ids.ajeno, estado: "presente", motivo: "Prueba" },
+  });
+  assert.equal(r.estado, 400);
+});
+
+prueba("otro instructor no puede cerrar la sesión; el titular sí, y los ausentes reciben enlace", async () => {
+  assert.equal((await e.peticion("POST", `/api/sesiones/${idSesion}/cerrar`, { token: tokens.otro })).estado, 403);
+
+  const r = await e.peticion("POST", `/api/sesiones/${idSesion}/cerrar`, { token: tokens.instructor });
+  assert.equal(r.estado, 200);
+  assert.match(r.datos.mensaje, /1 aprendiz/);
+
+  const { rows } = await e.pool.query(
+    `SELECT a.estado, j.token, j.estado AS estado_justificacion
+     FROM asistencia a LEFT JOIN justificacion j ON j.id_asistencia = a.id_asistencia
+     WHERE a.id_sesion = $1 AND a.id_aprendiz = $2`,
+    [idSesion, e.ids.ausente]
+  );
+  assert.equal(rows[0].estado, "ausente");
+  assert.equal(rows[0].estado_justificacion, "pendiente");
+  assert.ok(rows[0].token);
+
+  const aviso = await e.pool.query("SELECT 1 FROM notificacion WHERE id_usuario = $1 AND tipo = 'inasistencia'", [e.ids.ausente]);
+  assert.equal(aviso.rows.length, 1);
+});
+
+prueba("una justificación con el plazo vencido responde 410", async () => {
+  const { rows } = await e.pool.query(
+    `SELECT j.token FROM justificacion j JOIN asistencia a ON a.id_asistencia = j.id_asistencia
+     WHERE a.id_aprendiz = $1`,
+    [e.ids.ausente]
+  );
+  const token = rows[0].token;
+  assert.equal((await e.peticion("GET", `/api/justificaciones/token/${token}`)).estado, 200);
+
+  await e.pool.query("UPDATE justificacion SET expira_en = NOW() - INTERVAL '1 minute' WHERE token = $1", [token]);
+  const vencida = await e.peticion("GET", `/api/justificaciones/token/${token}`);
+  assert.equal(vencida.estado, 410);
+  assert.equal(vencida.datos.vencida, true);
+});
+
+prueba("pasadas 24 h del cierre, el instructor ya no corrige asistencia pero el coordinador sí", async () => {
+  await e.pool.query("UPDATE sesion_clase SET hora_cierre = NOW() - INTERVAL '25 hours' WHERE id_sesion = $1", [idSesion]);
+  const cuerpo = { id_aprendiz: e.ids.ausente, estado: "presente", motivo: "=1+1 llegó con soporte" };
+
+  const instructor = await e.peticion("POST", `/api/sesiones/${idSesion}/asistencia-manual`, { token: tokens.instructor, cuerpo });
+  assert.equal(instructor.estado, 403);
+
+  const coordinador = await e.peticion("POST", `/api/sesiones/${idSesion}/asistencia-manual`, { token: tokens.coordinador, cuerpo });
+  assert.equal(coordinador.estado, 200);
+});
+
+prueba("el CSV exportado neutraliza fórmulas de Excel", async () => {
+  const r = await e.peticion("GET", "/api/reportes/exportar", { token: tokens.coordinador });
+  assert.equal(r.estado, 200);
+  assert.match(r.datos, /'=1\+1 llegó con soporte/);
+  assert.doesNotMatch(r.datos, /;=1\+1/);
+});
+
+// ---------- Configuración y validaciones generales ----------
+
+prueba("la configuración rechaza valores inválidos y acepta los válidos", async () => {
+  const mala = await e.peticion("PUT", "/api/configuracion", { token: tokens.coordinador, cuerpo: { minutos_tolerancia: "abc" } });
+  assert.equal(mala.estado, 400);
+  const buena = await e.peticion("PUT", "/api/configuracion", { token: tokens.coordinador, cuerpo: { minutos_tolerancia: 10 } });
+  assert.equal(buena.estado, 200);
+  const aprendiz = await e.peticion("PUT", "/api/configuracion", { token: tokens.ana, cuerpo: { minutos_tolerancia: 0 } });
+  assert.equal(aprendiz.estado, 403);
+});
+
+prueba("un JSON mal formado responde 400 y no queda como falla del servidor", async () => {
+  const r = await e.peticion("POST", "/api/auth/login", { crudo: "{esto no es json" });
+  assert.equal(r.estado, 400);
+  const logs = await e.pool.query("SELECT COUNT(*)::int AS total FROM log_error");
+  assert.equal(logs.rows[0].total, 0);
+});
+
+prueba("una matrícula de alguien que no es aprendiz se rechaza", async () => {
+  const r = await e.peticion("POST", `/api/fichas/${e.ids.ficha}/matriculas`, {
+    token: tokens.coordinador, cuerpo: { ids_aprendices: [e.ids.otroInstructor] },
+  });
+  assert.equal(r.estado, 200);
+  assert.equal(r.datos.matriculados, 0);
+  assert.match(r.datos.errores[0].error, /no es aprendiz/);
+});
+
+prueba("el coordinador no puede desactivar su propia cuenta", async () => {
+  const r = await e.peticion("PATCH", `/api/usuarios/${e.ids.coordinador}/estado`, {
+    token: tokens.coordinador, cuerpo: { estado: "inactivo" },
+  });
+  assert.equal(r.estado, 400);
+});

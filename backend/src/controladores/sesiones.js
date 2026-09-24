@@ -18,7 +18,7 @@ async function iniciarSesion(req, res, next) {
 
 async function verDetalle(req, res, next) {
   try {
-    res.json(await servicio.verDetalle(req.params.id));
+    res.json(await servicio.verDetalle(req.params.id, req.usuario));
   } catch (error) {
     next(error);
   }
