@@ -99,6 +99,24 @@ const TRAZOS = {
       <path d="M4.2 18l1.3 1.3 2.4-2.5" />
     </>
   ),
+  llave: (
+    <>
+      <circle cx="7.5" cy="15.5" r="4" />
+      <path d="M10.4 12.6 20 3" />
+      <path d="M16.5 6.5 19 9" />
+      <path d="M14 9l2 2" />
+    </>
+  ),
+  subir: (
+    <>
+      <path d="M20.5 15v3.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V15" />
+      <path d="M7.5 8 12 3.5 16.5 8" />
+      <line x1="12" y1="3.5" x2="12" y2="15" />
+    </>
+  ),
+  adjunto: (
+    <path d="M20.4 11.1 12 19.5a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" />
+  ),
 };
 
 export default function Icono({ nombre, size = "1.05em", style, ...props }) {

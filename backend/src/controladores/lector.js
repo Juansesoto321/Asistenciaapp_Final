@@ -1,9 +1,9 @@
-const dispositivoRepo = require("../repositorios/dispositivo");
+const dispositivos = require("../servicios/dispositivos");
 const marcacionServicio = require("../servicios/marcacion");
 
 async function heartbeat(req, res, next) {
   try {
-    await dispositivoRepo.marcarEnLinea(req.dispositivo.id_dispositivo);
+    await dispositivos.registrarLatido(req.dispositivo.id_dispositivo);
     res.json({ ok: true });
   } catch (error) {
     next(error);

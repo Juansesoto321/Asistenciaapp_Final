@@ -1,8 +1,9 @@
-const repositorio = require("../repositorios/biometria");
-const { enTransaccion } = require("../repositorios/transaccion");
+const modelo = require("../modelos/biometria");
+const { enTransaccion } = require("../modelos/transaccion");
 const { cifrar, generarTemplateSimulado } = require("./cifrado");
 const { auditar } = require("./auditoria");
 const { emitirNotificacionNueva } = require("./tiempoReal");
+const { error } = require("../utilidades/errores");
 
 const TEXTO_CONSENTIMIENTO = `Autorizo al SENA el tratamiento de mi huella dactilar con la única finalidad de
 registrar mi asistencia a las actividades de formación, conforme a la Ley 1581 de 2012.
@@ -14,8 +15,12 @@ function obtenerTextoConsentimiento() {
   return { version: "v1.0", texto: TEXTO_CONSENTIMIENTO };
 }
 
-async function obtenerEstado(idAprendiz) {
-  return repositorio.obtenerEstado(idAprendiz);
+// El estado biométrico es un dato sensible (Ley 1581): solo lo ve el propio
+// aprendiz o el personal que gestiona la asistencia.
+async function obtenerEstado(idAprendiz, usuario) {
+  if (usuario.rol === "aprendiz" && usuario.id !== idAprendiz)
+    throw error("No tienes permisos para consultar este dato", "prohibido");
+  return modelo.obtenerEstado(idAprendiz);
 }
 
 /**
@@ -23,32 +28,38 @@ async function obtenerEstado(idAprendiz) {
  * En modo simulado, "lectura1" y "lectura2" las produce el simulador de enrolador
  * (equivalen a las dos pasadas del dedo por el ZK9500).
  */
-async function enrolar({ idAprendiz, aceptaConsentimiento, lectura1, lectura2 }, idUsuarioActor) {
+async function enrolar({ idAprendiz, aceptaConsentimiento, lectura1, lectura2 }, usuario) {
+  if (!(await modelo.esAprendiz(idAprendiz))) throw error("Solo se registra la huella de aprendices", "validacion");
+  if (usuario.rol === "instructor" && !(await modelo.esAprendizDeInstructor(idAprendiz, usuario.id)))
+    throw error("Solo puedes registrar la huella de aprendices de tus fichas", "prohibido");
   if (!aceptaConsentimiento)
-    throw Object.assign(new Error("El aprendiz no aceptó el consentimiento. Deberá usar registro manual"), { tipo: "validacion" });
+    throw error("El aprendiz no aceptó el consentimiento. Deberá usar registro manual", "validacion");
   if (!lectura1 || lectura1 !== lectura2)
-    throw Object.assign(new Error("Las dos capturas no coinciden. Intenta nuevamente (máximo 3 intentos)"), { tipo: "validacion" });
-  if (await repositorio.existePlantilla(idAprendiz))
-    throw Object.assign(new Error("El aprendiz ya tiene una huella registrada. Elimínala primero para re-enrolar"), { tipo: "validacion" });
+    throw error("Las dos capturas no coinciden. Intenta nuevamente (máximo 3 intentos)", "validacion");
+  if (await modelo.existePlantilla(idAprendiz))
+    throw error("El aprendiz ya tiene una huella registrada. Elimínala primero para re-enrolar", "validacion");
 
   await enTransaccion(async (cliente) => {
-    const idConsentimiento = await repositorio.insertarConsentimiento(cliente, idAprendiz);
+    const idConsentimiento = await modelo.insertarConsentimiento(cliente, idAprendiz);
     const template = generarTemplateSimulado(lectura1);
     const cifrado = cifrar(template);
-    await repositorio.insertarPlantilla(cliente, { idAprendiz, cifrado, idConsentimiento });
+    await modelo.insertarPlantilla(cliente, { idAprendiz, cifrado, idConsentimiento });
   });
-  await auditar(idUsuarioActor, "enrollment_biometrico", "usuario", idAprendiz);
+  await auditar(usuario.id, "enrollment_biometrico", "usuario", idAprendiz);
 }
 
 /**
  * CU-11: Derecho al borrado. Elimina la plantilla, conserva historial de asistencia.
  */
 async function eliminar(idAprendiz, idUsuarioActor) {
-  const idConsentimiento = await repositorio.eliminarPlantilla(idAprendiz);
-  if (!idConsentimiento)
-    throw Object.assign(new Error("El aprendiz no tiene datos biométricos"), { tipo: "no_encontrado" });
-  await repositorio.revocarConsentimiento(idConsentimiento);
-  await repositorio.notificarBorrado(idAprendiz);
+  // Borrado, revocación y aviso van juntos: si algo falla no queda a medias
+  await enTransaccion(async (cliente) => {
+    const idConsentimiento = await modelo.eliminarPlantilla(cliente, idAprendiz);
+    if (!idConsentimiento)
+      throw error("El aprendiz no tiene datos biométricos", "no_encontrado");
+    await modelo.revocarConsentimiento(cliente, idConsentimiento);
+    await modelo.notificarBorrado(cliente, idAprendiz);
+  });
   emitirNotificacionNueva(idAprendiz);
   await auditar(idUsuarioActor, "eliminar_datos_biometricos", "usuario", idAprendiz);
 }

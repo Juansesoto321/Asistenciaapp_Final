@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
 import { api } from "../servicios/api";
+import { conectarTiempoReal } from "../servicios/socket";
 import { useAuth } from "../contexto/AuthContext.jsx";
 import IconoHuella from "./IconoHuella.jsx";
 import IconoSoporte from "./IconoSoporte.jsx";
@@ -71,11 +71,10 @@ export default function Diseno({ children }) {
   useEffect(() => {
     const cargar = () => api("/notificaciones/contador").then((r) => setNotifPendientes(r.pendientes)).catch(() => {});
     cargar();
-    const socket = io();
-    socket.emit("unirse_panel", { rol: sesion.usuario.rol, id: sesion.usuario.id });
+    const socket = conectarTiempoReal();
     socket.on("notificaciones:actualizadas", cargar);
     return () => socket.disconnect();
-  }, [sesion.usuario.id, sesion.usuario.rol]);
+  }, [sesion.usuario.id]);
 
   return (
     <div className="aplicacion">

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch src/app.js",
     "start": "node src/app.js",
-    "sembrar": "node src/scripts/sembrar.js"
+    "sembrar": "node src/scripts/sembrar.js",
+    "test": "node --test"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -17,5 +18,8 @@
     "nodemailer": "^6.9.13",
     "pg": "^8.11.5",
     "socket.io": "^4.7.5"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

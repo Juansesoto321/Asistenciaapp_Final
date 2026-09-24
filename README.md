@@ -24,14 +24,17 @@ Plataforma web que automatiza el registro de asistencia de aprendices mediante l
 
 **Todo** el backend sigue este flujo unidireccional:
 
-`rutas -> controladores -> servicios -> repositorios -> PostgreSQL`
+`rutas -> controladores -> servicios -> modelos -> PostgreSQL`
 
 - `rutas/`: define URLs, método HTTP, autenticación y autorización. Sin lógica.
 - `controladores/`: leen la petición y arman la respuesta; los errores se
   delegan con `next(error)`.
 - `servicios/`: reglas de negocio, validaciones y transacciones. No conocen
   `req` ni `res`.
-- `repositorios/`: único lugar donde se ejecuta SQL.
+- `modelos/`: único lugar donde se ejecuta SQL (la "capa de modelos" de la Guía 6).
+- `utilidades/`: piezas compartidas sin estado (errores de negocio, formato de
+  correos y CSV).
+- `config/`: carga y valida el `.env` (`entorno.js`) y crea la conexión (`db.js`).
 
 El manejo de errores está centralizado en `middleware/manejadorErrores.js`: los
 servicios lanzan errores marcados con un `tipo` (`validacion`, `no_encontrado`,
@@ -100,8 +103,9 @@ El límite HTTP del backend es de 10 MB para permitir la codificación base64.
 
 ### Actualizar una instalación existente
 
-`npm run sembrar` aplica el esquema y **todas** las migraciones de `db/migracion_*.sql`
-(son idempotentes), así que sirve igual para una base nueva que para una existente.
+`npm run sembrar` aplica el esquema y **todas** las migraciones de `db/migraciones/`
+en orden (`001_`, `002_`…). Son idempotentes, así que sirve igual para una base nueva
+que para una existente.
 Con Docker: `docker compose exec backend npm run sembrar`.
 
 Los roles son `coordinador`, `programador`, `instructor` y `aprendiz`. El programador
@@ -139,8 +143,8 @@ matrículas activas también se marcan como `finalizada`.
 1. **Admin** → Fichas → ficha 3311983 → *Enrolar huella* de un aprendiz (consentimiento → 2 capturas → plantilla cifrada AES-256).
 2. **Instructor** → Sesiones de hoy → *Iniciar sesión de hoy* → queda en la vista de supervisión en vivo.
 3. En el **simulador**, escribe el documento del aprendiz (ej. `1016716963`): la fila se actualiza **en tiempo real** con presente/tardanza según los 15 min de tolerancia. Prueba `9999999999` para ver la alerta de huella no reconocida.
-4. Registra a otro aprendiz con **✍ Manual** (motivo obligatorio, queda en auditoría).
-5. **⏹ Cerrar sesión**: los no marcados quedan ausentes y en la consola del backend aparece el **correo simulado** con el enlace de justificación (72 h).
+4. Registra a otro aprendiz con **Registro manual** (motivo obligatorio, queda en auditoría).
+5. **Cerrar sesión de clase** (el diálogo avisa cuántos quedarán ausentes): los no marcados quedan ausentes y en la consola del backend aparece el **correo simulado** con el enlace de justificación (72 h).
 6. Abre ese enlace `/justificar/<token>` en el navegador → envía la excusa con adjunto.
 7. **Instructor** → Justificaciones → *Aprobar* → la ausencia pasa a **justificada**.
 8. **Aprendiz** (Julieth Camila) → *Mi asistencia*: anillo de porcentaje y alerta si baja del 80 %.
@@ -160,25 +164,65 @@ El aprendiz se matricula en el propio dispositivo usando como PIN su número de 
 - **Consentimiento informado** versionado y auditable antes del enrolamiento; sin él, el aprendiz usa registro manual.
 - **Derecho al borrado** (CU-11): elimina la plantilla de forma permanente conservando el historial académico.
 - Contraseñas con **bcrypt**, sesiones **JWT** (8 h), bloqueo tras **5 intentos** fallidos, y **auditoría** de todas las acciones sensibles.
+- **Límite de peticiones por IP** en inicio de sesión, registro y recuperación de contraseña (frena la fuerza bruta y el envío masivo de correos), y como máximo 3 correos de recuperación por hora por cuenta.
+- El canal de **tiempo real** (Socket.IO) exige el mismo token de la API: el rol sale del token, y solo el instructor titular o la coordinación pueden seguir una clase en vivo.
+- Pasadas **24 horas** del cierre de una sesión, solo la coordinación puede corregir la asistencia (RF-35).
+- **CORS** limitado a `URL_FRONTEND` y encabezados HTTP de seguridad en el backend y en nginx.
+- Con `NODE_ENV=production` el servidor **se niega a arrancar** si `JWT_SECRETO` o `CLAVE_CIFRADO` tienen los valores de ejemplo (son públicos: están en el repositorio).
+
+## Pruebas automáticas
+
+```bash
+cd backend
+npm test
+```
+
+- **Unitarias** (`tests/unitarias/`): reglas sin base de datos — tardanza (incluida la
+  clase nocturna), política de contraseñas, configuración, lector de CSV, manejador de
+  errores y límite de peticiones.
+- **Integración** (`tests/integracion/`): levantan la API real contra una base aparte,
+  `asistenciaapp_pruebas`, que se crea y se borra en cada corrida (nunca se toca la base
+  de desarrollo). Recorren el ciclo completo de una clase: login y bloqueo, horarios,
+  iniciar sesión, marcar con huella, registro manual, cierre con ausentes, justificación
+  vencida, permisos por rol y exportación CSV.
+- En pruebas **nunca se envían correos** (`NODE_ENV=test`).
+- Si no hay PostgreSQL disponible, las de integración se omiten en vez de fallar. Para
+  usar otro servidor define `DATABASE_URL_PRUEBAS`.
 
 ## Estructura del proyecto
 
 ```
 asistenciaapp/
-├── db/init.sql                  # Esquema completo + configuración inicial
-├── db/migracion_*.sql           # Migraciones idempotentes (roles, logs, competencias)
+├── db/
+│   ├── init.sql                 # Esquema completo + configuración inicial
+│   ├── semilla.sql
+│   └── migraciones/             # 001_logs, 002_roles, 003_competencias (idempotentes)
 ├── backend/
-│   ├── src/app.js               # Punto de entrada: middlewares, rutas y servidor
-│   ├── src/rutas/               # Solo URLs, método HTTP y autorización
-│   ├── src/controladores/       # Leen la petición y responden; delegan con next(error)
-│   ├── src/servicios/           # Reglas de negocio (no conocen req ni res)
-│   ├── src/repositorios/        # Único lugar que toca la base de datos
-│   ├── src/middleware/          # autenticar, autenticarDispositivo, manejadorErrores
-│   └── src/scripts/sembrar.js   # npm run sembrar (esquema + migraciones + demo)
-├── frontend/src/paginas/        # Vistas por rol + públicas
+│   ├── src/
+│   │   ├── app.js               # Punto de entrada: middlewares, rutas y servidor
+│   │   ├── config/              # entorno.js (valida el .env, zona horaria) y db.js
+│   │   ├── rutas/               # Solo URLs, método HTTP y autorización
+│   │   ├── controladores/       # Leen la petición y responden; delegan con next(error)
+│   │   ├── servicios/           # Reglas de negocio (no conocen req ni res)
+│   │   ├── modelos/             # Único lugar que toca la base de datos
+│   │   ├── middleware/          # autenticar, autenticarDispositivo, seguridad, manejadorErrores
+│   │   ├── utilidades/          # errores de negocio, formato (HTML de correos, CSV, fechas)
+│   │   └── scripts/sembrar.js   # npm run sembrar (esquema + migraciones + demo)
+│   └── tests/                   # npm test: unitarias/ e integracion/
+├── frontend/src/
+│   ├── App.jsx                  # Rutas y permisos por rol
+│   ├── paginas/
+│   │   ├── acceso/              # Login, registro, restablecer, justificar (públicas)
+│   │   ├── general/             # Panel, notificaciones, soporte, perfil
+│   │   ├── academico/           # Fichas, ambientes, horarios, competencias
+│   │   ├── asistencia/          # Sesiones, supervisión en vivo, justificaciones, reportes
+│   │   └── administracion/      # Usuarios, configuración
+│   ├── componentes/             # Diseño, iconos SVG, diálogos, indicador de carga
+│   ├── contexto/                # Sesión del usuario (AuthContext)
+│   └── servicios/               # api.js (HTTP) y socket.js (tiempo real)
 ├── simulador-lector/simulador.js
 └── docker-compose.yml
 ```
 
 El flujo es unidireccional, según la Guía 6 del programa:
-`Cliente HTTP → rutas → controladores → servicios → repositorios → BD`
+`Cliente HTTP → rutas → controladores → servicios → modelos → BD`

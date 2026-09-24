@@ -25,7 +25,7 @@ router.get("/fichas", controlador.listarFichas);
 router.post("/fichas", autorizar(...PLANEACION), controlador.crearFicha);
 
 // ---------- MATRICULAS (CU-06) ----------
-router.get("/fichas/:id/matriculas", controlador.listarMatriculas);
+router.get("/fichas/:id/matriculas", autorizar(...PLANEACION, "instructor"), controlador.listarMatriculas);
 router.post("/fichas/:id/matriculas", autorizar(...PLANEACION), controlador.matricular);
 router.patch("/matriculas/:id", autorizar(...PLANEACION), controlador.cambiarEstadoMatricula);
 

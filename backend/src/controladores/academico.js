@@ -82,7 +82,7 @@ async function eliminarHorario(req, res, next) {
 // ---------- MATRICULAS (CU-06) ----------
 async function listarMatriculas(req, res, next) {
   try {
-    res.json(await servicio.obtenerMatriculasDeFicha(req.params.id));
+    res.json(await servicio.obtenerMatriculasDeFicha(req.params.id, req.usuario));
   } catch (error) {
     next(error);
   }
