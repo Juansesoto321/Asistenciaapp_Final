@@ -62,6 +62,7 @@ export default function Configuracion() {
         <div><h1 style={{ fontSize: 20 }}>Periodos académicos</h1><p>Los periodos se usan al crear fichas, ambientes y horarios.</p></div>
       </div>
       <div className="tarjeta" style={{ maxWidth: 560 }}>
+        <div className="tabla-desplazable">
         <table className="tabla">
           <thead><tr><th>Nombre</th><th>Inicio</th><th>Fin</th></tr></thead>
           <tbody>
@@ -75,6 +76,7 @@ export default function Configuracion() {
             {!periodos.length && <tr><td colSpan={3}><Vacio icono="horarios" titulo="Aún no hay periodos creados" /></td></tr>}
           </tbody>
         </table>
+        </div>
         <h3 style={{ fontSize: 15, marginTop: 20 }}>Nuevo periodo</h3>
         <label>Nombre *</label>
         <input required value={nuevoPeriodo.nombre} onChange={(e) => setNuevoPeriodo({ ...nuevoPeriodo, nombre: e.target.value })} placeholder="2026-2" />

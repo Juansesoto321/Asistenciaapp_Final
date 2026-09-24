@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../servicios/api";
 import { useAuth } from "../../contexto/AuthContext.jsx";
-import IconoHuella from "../../componentes/IconoHuella.jsx";
+import Logo from "../../componentes/Logo.jsx";
 
 export default function IniciarSesion() {
   const navegar = useNavigate();
@@ -32,7 +32,7 @@ export default function IniciarSesion() {
   return (
     <div className="pantalla-acceso">
       <div className="tarjeta-acceso">
-        <div className="logo-acceso"><IconoHuella size="1em" /></div>
+        <div className="logo-acceso"><Logo size="1.25em" /></div>
         <h1>AsistenciaApp</h1>
         <p className="subtitulo">Control de asistencia con huella digital · SENA</p>
         {mensaje && <div className={`mensaje ${mensaje.tipo}`}>{mensaje.texto}</div>}

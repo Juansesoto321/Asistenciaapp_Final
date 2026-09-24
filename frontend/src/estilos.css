@@ -148,6 +148,12 @@ table.tabla { width: 100%; border-collapse: collapse; background: var(--blanco);
 .tabla th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--tinta-suave); background: var(--violeta-50); padding: 11px 14px; }
 .tabla td { padding: 11px 14px; border-top: 1px solid var(--borde); font-size: 14px; }
 .tabla tr:hover td { background: #faf9ff; }
+.tabla td .boton { white-space: nowrap; }
+.tabla-desplazable .tabla td:first-child { min-width: 170px; } /* nombres legibles, sin partirse en 4 líneas */
+/* Tablas anchas: se desplazan de lado dentro de su recuadro en vez de salirse
+   de la página (antes se cortaba la columna de acciones en pantallas medianas) */
+.tabla-desplazable { overflow-x: auto; border-radius: var(--radio); box-shadow: var(--sombra); background: var(--blanco); }
+.tabla-desplazable > table.tabla { box-shadow: none; border-radius: 0; }
 
 /* ---- Insignias de estado ---- */
 .insignia { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }

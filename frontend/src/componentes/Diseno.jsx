@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../servicios/api";
 import { conectarTiempoReal } from "../servicios/socket";
 import { useAuth } from "../contexto/AuthContext.jsx";
-import IconoHuella from "./IconoHuella.jsx";
+import Logo from "./Logo.jsx";
 import IconoSoporte from "./IconoSoporte.jsx";
 import Icono from "./Iconos.jsx";
 
@@ -105,7 +105,7 @@ export default function Diseno({ children }) {
           <Icono nombre="menu" size="1.4em" />
         </button>
         <Link to="/panel" className="marca-mini">
-          <span className="icono"><IconoHuella size="1.1em" /></span>
+          <span className="icono"><Logo size="1.25em" /></span>
           AsistenciaApp
         </Link>
         <Link to="/notificaciones" className="boton-menu campana" aria-label={`Notificaciones: ${notifPendientes} sin leer`}>
@@ -118,7 +118,7 @@ export default function Diseno({ children }) {
 
       <aside className={`barra-lateral ${menuAbierto ? "abierta" : ""}`} aria-label="Menú principal">
         <div className="marca">
-          <div className="icono"><IconoHuella size="1.3em" /></div>
+          <div className="icono"><Logo size="1.45em" /></div>
           <div>
             AsistenciaApp
             <small>SENA · Control de asistencia</small>

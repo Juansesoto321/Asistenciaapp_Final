@@ -103,6 +103,7 @@ export default function Reportes() {
       </div>
 
       {resultados && (
+        <div className="tabla-desplazable">
         <table className="tabla">
           <thead><tr><th>Fecha</th><th>Aprendiz</th><th>Documento</th><th>Ficha</th><th>Estado</th><th>Hora</th><th>Método</th></tr></thead>
           <tbody>
@@ -118,6 +119,7 @@ export default function Reportes() {
             {!resultados.length && <tr><td colSpan={7}><Vacio icono="reportes" titulo="Sin resultados con esos filtros">Prueba ampliando el rango de fechas o quitando algún filtro.</Vacio></td></tr>}
           </tbody>
         </table>
+        </div>
       )}
 
       {!resultados && (

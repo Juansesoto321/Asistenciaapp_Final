@@ -122,6 +122,7 @@ export default function Usuarios() {
         </select>
       </div>
 
+      <div className="tabla-desplazable">
       <table className="tabla">
         <thead><tr><th>Nombre</th><th>Documento</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
         <tbody>
@@ -144,6 +145,7 @@ export default function Usuarios() {
           {usuarios?.length === 0 && <tr><td colSpan={6}><Vacio icono="usuarios" titulo="No hay usuarios con esos filtros" /></td></tr>}
         </tbody>
       </table>
+      </div>
 
       {modal?.editar && (
         <div className="superposicion" onClick={() => setModal(null)}>
