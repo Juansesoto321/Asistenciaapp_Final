@@ -43,6 +43,27 @@ anterior para migrarlos de forma incremental sin romper la aplicación.
 
 ---
 
+## Pruebas automatizadas del backend
+
+El backend está escrito en JavaScript con CommonJS, por lo que no necesita
+configuración de TypeScript ni `ts-jest`. Para ejecutar la prueba de integración
+HTTP de inicio de sesión:
+
+```bash
+cd backend
+npm install
+npm test
+```
+
+La prueba cubre `POST /api/auth/login` mediante Jest y Supertest. Usa el router y
+el controlador reales, pero simula el servicio de autenticación para no requerir
+PostgreSQL, credenciales ni un servidor en ejecución. Valida la respuesta 200 y
+su estructura de token/usuario, el error 401 por credenciales incorrectas y el
+403 de una cuenta pendiente de aprobación. La configuración está en
+`backend/jest.config.js` y los casos en `backend/src/tests/authLogin.test.js`.
+
+---
+
 ## Opción A · Ejecución local (desarrollo y sustentación)
 
 Requisitos: **Node.js 20+** y **PostgreSQL 14+**.
