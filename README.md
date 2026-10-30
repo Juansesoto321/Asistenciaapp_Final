@@ -205,12 +205,29 @@ La sesión dura 8 horas, pero se renueva sola mientras la persona sigue usando l
 leer el usuario: si lo desactivaron, ya no entra. Cada persona elige en **Mi perfil**
 el tema claro, oscuro o el de su equipo, y en el menú puede dejar solo los íconos.
 
-## Opción C · Nube gratuita (Render / Railway)
+## Opción C · Nube gratuita (Render)
 
-1. Sube el repositorio a GitHub.
-2. Crea un PostgreSQL gestionado y copia su `DATABASE_URL`.
-3. Despliega `backend/` como Web Service (comando `npm start`) con las variables del `.env.example`.
-4. Despliega `frontend/` como Static Site (build `npm run build`, carpeta `dist`) y configura el rewrite `/api/*` y `/socket.io/*` hacia la URL del backend.
+La versión de demostración está publicada en **https://asistenciaapp.onrender.com**, con
+una base de datos aparte que tiene las cuentas de demostración. No envía correos.
+
+Es un solo Web Service de Node: el backend sirve también la app web compilada
+(`CARPETA_FRONTEND`), así que la API, Socket.IO y las páginas comparten la misma dirección.
+
+| Ajuste | Valor |
+|---|---|
+| Build Command | `cd frontend && npm ci && npm run build && cd ../backend && npm ci` |
+| Start Command | `cd backend && npm run sembrar && npm start` |
+| `DATABASE_URL` | la *Internal Database URL* de la base PostgreSQL de Render |
+| `JWT_SECRETO`, `CLAVE_CIFRADO` | propios (la clave de cifrado, 64 caracteres hexadecimales) |
+| `PUERTO` | `10000` |
+| `URL_FRONTEND` | `https://asistenciaapp.onrender.com` |
+| `CARPETA_FRONTEND` | `../frontend/dist` |
+| `IP_LECTORES` | `127.0.0.1` (en la nube no hay lector físico: cierra `/iclock`) |
+
+`npm run sembrar` aplica las migraciones en cada arranque y solo siembra si la base está
+vacía. En el plan gratis el servicio se duerme tras 15 minutos sin uso (la primera visita
+tarda cerca de un minuto) y la base gratuita vence a los 30 días: después hay que crear
+otra o pasarla a un plan pago.
 
 ---
 
