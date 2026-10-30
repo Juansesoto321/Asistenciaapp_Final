@@ -223,6 +223,7 @@ Es un solo Web Service de Node: el backend sirve también la app web compilada
 | `URL_FRONTEND` | `https://asistenciaapp-nvj4.onrender.com` |
 | `CARPETA_FRONTEND` | `../frontend/dist` |
 | `IP_LECTORES` | `127.0.0.1` (en la nube no hay lector físico: cierra `/iclock`) |
+| `NODE_ENV` | `development`: Render pone `production` por defecto y entonces `sembrar` se niega a crear las cuentas de demostración |
 
 `npm run sembrar` aplica las migraciones en cada arranque y solo siembra si la base está
 vacía. En el plan gratis el servicio se duerme tras 15 minutos sin uso (la primera visita
