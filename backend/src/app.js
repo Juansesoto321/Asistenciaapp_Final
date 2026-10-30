@@ -9,6 +9,7 @@ const { origenesPermitidos } = require("./config/entorno"); // siempre primero: 
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
+const path = require("path");
 const tiempoReal = require("./servicios/tiempoReal");
 const tareasProgramadas = require("./servicios/tareasProgramadas");
 const logs = require("./servicios/logs");
@@ -52,6 +53,17 @@ app.use("/api", require("./rutas/academico"));
 // Protocolo real ZKTeco PUSH/ADMS (lectores fisicos como el SenseFace 2A).
 // Rutas fijas por el protocolo: no llevan prefijo /api.
 app.use("/iclock", require("./rutas/adms"));
+
+// En la nube (Render) hay un solo servicio: el backend sirve también la app web
+// ya compilada. En Docker eso lo hace nginx y en desarrollo, Vite.
+if (process.env.CARPETA_FRONTEND) {
+  const carpeta = path.resolve(process.env.CARPETA_FRONTEND);
+  // Los archivos con hash en el nombre se pueden guardar en caché mucho tiempo
+  app.use("/assets", express.static(path.join(carpeta, "assets"), { immutable: true, maxAge: "30d" }));
+  app.use(express.static(carpeta, { index: false }));
+  // React Router: cualquier otra ruta que no sea de la API sirve index.html
+  app.get(/^\/(?!api\/|iclock\/|assets\/)/, (_req, res) => res.sendFile(path.join(carpeta, "index.html")));
+}
 
 // Control de errores: SIEMPRE al final, despues de todas las rutas
 app.use(rutaNoEncontrada);

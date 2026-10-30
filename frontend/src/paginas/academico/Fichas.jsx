@@ -106,10 +106,10 @@ export default function Fichas() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Nueva ficha</h2>
             <div className="rejilla-2">
-              <div><label>Número de ficha *</label><input required value={f.numero_ficha} onChange={(e) => setF({ ...f, numero_ficha: e.target.value })} /></div>
+              <div><label htmlFor="ficha-numero">Número de ficha *</label><input id="ficha-numero" required value={f.numero_ficha} onChange={(e) => setF({ ...f, numero_ficha: e.target.value })} /></div>
               <div>
-                <label>Jornada</label>
-                <select value={f.jornada} onChange={(e) => setF({ ...f, jornada: e.target.value })}>
+                <label htmlFor="ficha-jornada">Jornada</label>
+                <select id="ficha-jornada" value={f.jornada} onChange={(e) => setF({ ...f, jornada: e.target.value })}>
                   <option value="mañana">Mañana</option><option value="tarde">Tarde</option>
                   <option value="noche">Noche</option><option value="mixta">Mixta</option>
                 </select>
@@ -117,8 +117,8 @@ export default function Fichas() {
             </div>
             <div className="rejilla-2">
               <div>
-                <label>Programa de formación *</label>
-                <input required list="programas-existentes" value={f.programa} onChange={(e) => setF({ ...f, programa: e.target.value })} placeholder="Análisis y Desarrollo de Software" />
+                <label htmlFor="ficha-programa">Programa de formación *</label>
+                <input id="ficha-programa" required list="programas-existentes" value={f.programa} onChange={(e) => setF({ ...f, programa: e.target.value })} placeholder="Análisis y Desarrollo de Software" />
                 <datalist id="programas-existentes">
                   {[...new Set((fichas || []).map((x) => x.programa).filter((p) => !pareceSigla(p)))].map((p) => <option key={p} value={p} />)}
                 </datalist>
@@ -127,8 +127,8 @@ export default function Fichas() {
                 )}
               </div>
               <div>
-                <label>Trimestres</label>
-                <select value={f.trimestres} onChange={(e) => setF({ ...f, trimestres: e.target.value })}>
+                <label htmlFor="ficha-trimestres">Trimestres</label>
+                <select id="ficha-trimestres" value={f.trimestres} onChange={(e) => setF({ ...f, trimestres: e.target.value })}>
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
                     <option key={n} value={n}>{n}{n === 7 ? " (tecnólogo)" : n === 4 ? " (técnico)" : ""}</option>
                   ))}
@@ -136,20 +136,20 @@ export default function Fichas() {
               </div>
             </div>
             <div className="rejilla-2">
-              <div><label>Fecha inicio *</label><input required type="date" value={f.fecha_inicio} onChange={(e) => setF({ ...f, fecha_inicio: e.target.value })} /></div>
-              <div><label>Fecha fin *</label><input required type="date" value={f.fecha_fin} onChange={(e) => setF({ ...f, fecha_fin: e.target.value })} /></div>
+              <div><label htmlFor="ficha-inicio">Fecha inicio *</label><input id="ficha-inicio" required type="date" value={f.fecha_inicio} onChange={(e) => setF({ ...f, fecha_inicio: e.target.value })} /></div>
+              <div><label htmlFor="ficha-fin">Fecha fin *</label><input id="ficha-fin" required type="date" value={f.fecha_fin} onChange={(e) => setF({ ...f, fecha_fin: e.target.value })} /></div>
             </div>
             <div className="rejilla-2">
               <div>
-                <label>Periodo *</label>
-                <select required value={f.id_periodo} onChange={(e) => setF({ ...f, id_periodo: e.target.value })}>
+                <label htmlFor="ficha-periodo">Periodo *</label>
+                <select id="ficha-periodo" required value={f.id_periodo} onChange={(e) => setF({ ...f, id_periodo: e.target.value })}>
                   <option value="">Selecciona…</option>
                   {periodos.map((p) => <option key={p.id_periodo} value={p.id_periodo}>{p.nombre}</option>)}
                 </select>
               </div>
               <div>
-                <label>Instructor titular *</label>
-                <select required value={f.id_instructor} onChange={(e) => setF({ ...f, id_instructor: e.target.value })}>
+                <label htmlFor="ficha-instructor">Instructor titular *</label>
+                <select id="ficha-instructor" required value={f.id_instructor} onChange={(e) => setF({ ...f, id_instructor: e.target.value })}>
                   <option value="">Selecciona…</option>
                   {instructores.map((i) => <option key={i.id_usuario} value={i.id_usuario}>{i.nombres} {i.apellidos}</option>)}
                 </select>
