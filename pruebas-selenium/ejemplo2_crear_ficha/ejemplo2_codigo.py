@@ -17,7 +17,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
 
-URL = os.environ.get("APP_URL", "https://asistenciaapp.onrender.com")
+URL = os.environ.get("APP_URL", "https://asistenciaapp-nvj4.onrender.com")
 CORREO = "admin@sena.edu.co"  # cuenta de demostración del coordinador
 CONTRASENA = "Admin123*"
 PAUSA = 2  # segundos de espera entre cada paso
