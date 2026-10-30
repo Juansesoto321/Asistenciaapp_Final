@@ -11,7 +11,7 @@ código y con la extensión de Chrome.
 | Con la extensión (Selenium IDE) | `ejemplo1_extension.side` | `ejemplo2_extension.side` |
 | Duración aproximada | 12 segundos | 35 segundos |
 
-Los cuatro abren la versión publicada, **https://asistenciaapp.onrender.com**, con la
+Los cuatro abren la versión publicada, **https://asistenciaapp-nvj4.onrender.com**, con la
 cuenta de demostración del coordinador (`admin@sena.edu.co` / `Admin123*`). Entre un paso
 y otro esperan **2 segundos** para que la clase alcance a ver qué hace Selenium.
 
@@ -33,7 +33,7 @@ y otro esperan **2 segundos** para que la clase alcance a ver qué hace Selenium
 5. **Ensayar una vez los cuatro.** Si algo falla, revisar la sección *Si algo falla*.
 6. **Plan B:** grabar la pantalla del ensayo (Windows: `Win + Alt + R` con la Xbox Game
    Bar). Si en clase falla el internet, se muestra el video.
-7. **5 minutos antes de exponer:** abrir https://asistenciaapp.onrender.com en el
+7. **5 minutos antes de exponer:** abrir https://asistenciaapp-nvj4.onrender.com en el
    navegador. Render gratis duerme el servidor cuando nadie lo usa y tarda cerca de un
    minuto en despertar; así, en la exposición responde de inmediato.
 

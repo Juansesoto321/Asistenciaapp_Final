@@ -207,7 +207,7 @@ el tema claro, oscuro o el de su equipo, y en el menú puede dejar solo los íco
 
 ## Opción C · Nube gratuita (Render)
 
-La versión de demostración está publicada en **https://asistenciaapp.onrender.com**, con
+La versión de demostración está publicada en **https://asistenciaapp-nvj4.onrender.com**, con
 una base de datos aparte que tiene las cuentas de demostración. No envía correos.
 
 Es un solo Web Service de Node: el backend sirve también la app web compilada
@@ -220,7 +220,7 @@ Es un solo Web Service de Node: el backend sirve también la app web compilada
 | `DATABASE_URL` | la *Internal Database URL* de la base PostgreSQL de Render |
 | `JWT_SECRETO`, `CLAVE_CIFRADO` | propios (la clave de cifrado, 64 caracteres hexadecimales) |
 | `PUERTO` | `10000` |
-| `URL_FRONTEND` | `https://asistenciaapp.onrender.com` |
+| `URL_FRONTEND` | `https://asistenciaapp-nvj4.onrender.com` |
 | `CARPETA_FRONTEND` | `../frontend/dist` |
 | `IP_LECTORES` | `127.0.0.1` (en la nube no hay lector físico: cierra `/iclock`) |
 

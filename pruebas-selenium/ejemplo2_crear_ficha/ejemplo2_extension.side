@@ -2,7 +2,7 @@
   "id": "b9c0f7eb-591f-439b-b3a6-144beea73308",
   "version": "2.0",
   "name": "AsistenciaApp - Ejemplo 2",
-  "url": "https://asistenciaapp.onrender.com",
+  "url": "https://asistenciaapp-nvj4.onrender.com",
   "tests": [
     {
       "id": "412ba03c-94b0-471c-8c96-4e31de3f9dbf",
@@ -336,7 +336,7 @@
     }
   ],
   "urls": [
-    "https://asistenciaapp.onrender.com/"
+    "https://asistenciaapp-nvj4.onrender.com/"
   ],
   "plugins": []
 }
