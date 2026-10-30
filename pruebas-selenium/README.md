@@ -8,7 +8,8 @@ código y con la extensión de Chrome.
 | Ejemplo | Abrir el link e iniciar sesión | Lo mismo y, desde el panel, crear una ficha (rol coordinador) |
 | Carpeta | `ejemplo1_iniciar_sesion/` | `ejemplo2_crear_ficha/` |
 | Con código (Python) | `ejemplo1_codigo.py` | `ejemplo2_codigo.py` |
-| Con la extensión (Selenium IDE) | `ejemplo1_extension.side` | `ejemplo2_extension.side` |
+| Con la extensión de Chrome (Katalon Recorder) | `ejemplo1_katalon.html` | `ejemplo2_katalon.html` |
+| Si consiguen la extensión Selenium IDE | `ejemplo1_extension.side` | `ejemplo2_extension.side` |
 | Duración aproximada | 12 segundos | 35 segundos |
 
 Los cuatro abren la versión publicada, **https://asistenciaapp-nvj4.onrender.com**, con la
@@ -27,9 +28,14 @@ y otro esperan **2 segundos** para que la clase alcance a ver qué hace Selenium
    ```bash
    pip install -r requirements.txt
    ```
-4. **Instalar la extensión Selenium IDE** en Google Chrome:
-   https://chromewebstore.google.com/detail/selenium-ide/mooikfkahbdckldjjndioackbalphokd
-   y fijarla en la barra (ícono de rompecabezas → chincheta junto a *Selenium IDE*).
+4. **Instalar la extensión Katalon Recorder** en Google Chrome. La extensión oficial
+   *Selenium IDE* ya no aparece en la Chrome Web Store; Katalon Recorder es la alternativa
+   compatible con Selenium (mismos comandos: `open`, `type`, `click`…).
+   - En la Chrome Web Store buscar **Katalon Recorder (Selenium tests generator)** →
+     **Agregar a Chrome** → **Agregar extensión**.
+   - Fijarla en la barra: ícono de rompecabezas → chincheta junto a *Katalon Recorder*.
+   - Si al abrirla pide iniciar sesión en Katalon, buscar la opción para omitirlo; si no
+     la tiene, crear una cuenta gratis.
 5. **Ensayar una vez los cuatro.** Si algo falla, revisar la sección *Si algo falla*.
 6. **Plan B:** grabar la pantalla del ensayo (Windows: `Win + Alt + R` con la Xbox Game
    Bar). Si en clase falla el internet, se muestra el video.
@@ -48,8 +54,8 @@ y otro esperan **2 segundos** para que la clase alcance a ver qué hace Selenium
 >
 > Hay dos formas de usarlo:
 > - **Con código (Selenium WebDriver):** se escribe un programa, en nuestro caso en Python.
-> - **Con la extensión de Chrome (Selenium IDE):** se graban o escriben los pasos en una
->   lista, sin programar, y la extensión los reproduce.
+> - **Con una extensión de Chrome (Katalon Recorder, compatible con Selenium IDE):** se
+>   graban o escriben los pasos en una lista, sin programar, y la extensión los reproduce.
 
 ---
 
@@ -73,18 +79,23 @@ y otro esperan **2 segundos** para que la clase alcance a ver qué hace Selenium
 3. Se abre Chrome solo. Mostrar que en la consola va saliendo cada paso y al final
    **`PRUEBA SUPERADA`**. Chrome se cierra solo a los pocos segundos.
 
-### B. Con la extensión
+### B. Con la extensión (Katalon Recorder)
 
-1. En Chrome, clic en el ícono **Se** (Selenium IDE).
-2. **Open an existing project** → abrir `ejemplo1_iniciar_sesion/ejemplo1_extension.side`.
-3. Mostrar la lista de pasos y explicar cada columna:
+1. Dejar abierta una ventana normal de Chrome (puede ser la pestaña de la app): ahí es
+   donde la extensión hace los pasos.
+2. Clic en el ícono de **Katalon Recorder** (la R roja). Se abre su ventana.
+3. En el panel de la izquierda (**Test Explorer**), clic en el ícono de abrir
+   (*Open new test suite*) → **Open KR Test Suite** → elegir
+   `ejemplo1_iniciar_sesion/ejemplo1_katalon.html`.
+4. Clic en la prueba **Ejemplo 1 - Iniciar sesion** y mostrar la tabla de pasos:
    - **Command** (qué hace): `open` abre la página, `type` escribe, `click` hace clic,
-     `pause` espera 2000 milisegundos, `assert…` comprueba.
+     `pause` espera 2000 milisegundos, `echo` escribe un mensaje en el registro,
+     `assert…` comprueba.
    - **Target** (dónde): el campo, por ejemplo `id=login-correo`.
    - **Value** (qué escribe): el correo o la contraseña.
-4. Clic en **Run current test** (▷). Se abre una ventana de Chrome y cada paso se va
-   poniendo **en verde**.
-5. Abajo, en **Log**, sale **`PRUEBA SUPERADA`**.
+5. Clic en **Play** (arriba). En la ventana de Chrome se ve cómo abre la app, escribe y
+   entra; en Katalon cada paso se pone **en verde**.
+6. Abajo, en **Log**, van saliendo los pasos y al final **`PRUEBA SUPERADA`**.
 
 ---
 
@@ -110,27 +121,27 @@ y otro esperan **2 segundos** para que la clase alcance a ver qué hace Selenium
    campo y la ficha nueva aparece en la tabla. En la consola sale **`PRUEBA SUPERADA`**
    con el número de la ficha.
 
-### B. Con la extensión
+### B. Con la extensión (Katalon Recorder)
 
-1. Clic en **Se** → **Open an existing project** → `ejemplo2_crear_ficha/ejemplo2_extension.side`.
-   (Si la extensión ya tiene abierto el ejemplo 1, usar el ícono de carpeta, *Open project*,
-   arriba a la derecha.)
-2. Explicar lo nuevo frente al ejemplo 1:
+1. En Katalon Recorder: *Open new test suite* → **Open KR Test Suite** →
+   `ejemplo2_crear_ficha/ejemplo2_katalon.html`.
+2. Clic en la prueba **Ejemplo 2 - Crear ficha (coordinador)** y explicar lo nuevo frente
+   al ejemplo 1:
    - `select` elige una opción de una lista desplegable (`label=Tarde`).
-   - `execute script` corre una línea de JavaScript. Se usa para **inventar el número de
+   - `runScript` corre una línea de JavaScript. Se usa para **inventar el número de
      ficha** (queda en la variable `numeroFicha`) y para **llenar las fechas**, porque el
      formato del campo de fecha cambia según el idioma del Chrome de cada computador.
-   - `wait for element…` espera a que algo aparezca antes de seguir.
-3. **Run current test** (▷) y mostrar los pasos en verde, la ficha nueva en la tabla y
-   **`PRUEBA SUPERADA`** en el Log.
+   - `waitFor…` espera a que algo aparezca antes de seguir.
+3. **Play** y mostrar los pasos en verde, la ficha nueva en la tabla y, en el Log,
+   **`PRUEBA SUPERADA`** con el número de la ficha.
 
 ---
 
 ## Ajustar la espera entre pasos
 
 - **Código:** cambiar `PAUSA = 2` al principio del archivo (por ejemplo `PAUSA = 3`).
-- **Extensión:** cada comando `pause` tiene `2000` (milisegundos) en *Target*. También
-  se puede bajar la velocidad con el ícono del velocímetro (*Test execution speed*).
+- **Extensión:** cada comando `pause` tiene `2000` (milisegundos) en *Target*; se puede
+  cambiar ahí. Katalon Recorder también tiene un control de velocidad (**Speed**) arriba.
 
 ## Si algo falla
 
@@ -140,15 +151,20 @@ y otro esperan **2 segundos** para que la clase alcance a ver qué hace Selenium
 | `python` no se reconoce | Reinstalar Python marcando *Add python.exe to PATH*, o usar `py` en vez de `python`. |
 | `No module named selenium` | Correr `pip install -r requirements.txt` en la carpeta `pruebas-selenium`. |
 | Chrome pregunta si guardar la contraseña | Cerrar el aviso; no afecta la prueba. |
-| La tienda no deja instalar la extensión | La versión de escritorio de Selenium IDE (https://github.com/SeleniumHQ/selenium-ide/releases) abre los mismos archivos `.side`. |
+| Katalon no hace nada al dar Play | Dejar abierta y al frente una ventana normal de Chrome y volver a dar Play. |
+| Un paso queda en rojo en Katalon | Leer el mensaje del Log; casi siempre es que la página aún cargaba. Dar Play otra vez. |
 | No hay internet en el salón | Mostrar el video del plan B. |
 
 Para probar otra dirección, por ejemplo la app de Docker en el computador:
 `set APP_URL=http://localhost:8080` (en PowerShell: `$env:APP_URL="http://localhost:8080"`)
 antes de `python …`.
 
-Los archivos `.side` también corren sin abrir la extensión, desde la consola (necesita
-Node): `npx selenium-side-runner ejemplo1_iniciar_sesion/ejemplo1_extension.side`.
+### Los archivos `.side` (Selenium IDE)
+
+Son los mismos ejemplos para la extensión oficial **Selenium IDE**, por si la consiguen
+instalar: clic en **Se** → **Open an existing project** → el `.side` → **Run current test**
+(▷). También corren desde la consola, sin extensión (necesita Node):
+`npx selenium-side-runner ejemplo1_iniciar_sesion/ejemplo1_extension.side`.
 
 ## Qué datos dejan
 
