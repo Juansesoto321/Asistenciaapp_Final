@@ -1,0 +1,342 @@
+{
+  "id": "b9c0f7eb-591f-439b-b3a6-144beea73308",
+  "version": "2.0",
+  "name": "AsistenciaApp - Ejemplo 2",
+  "url": "https://asistenciaapp.onrender.com",
+  "tests": [
+    {
+      "id": "412ba03c-94b0-471c-8c96-4e31de3f9dbf",
+      "name": "Ejemplo 2 - Crear ficha (coordinador)",
+      "commands": [
+        {
+          "id": "3ba98890-7c68-4406-862b-4c637b73e09b",
+          "comment": "1. Abrir el link de la aplicación",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "6067a6ed-6409-496d-9a7e-ecb4a32e807c",
+          "comment": "",
+          "command": "setWindowSize",
+          "target": "1366x768",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "042bf296-5ef5-41f2-a74e-6fdc85378770",
+          "comment": "Render gratis puede tardar ~1 minuto en despertar",
+          "command": "waitForElementVisible",
+          "target": "id=login-correo",
+          "targets": [],
+          "value": "90000"
+        },
+        {
+          "id": "856f8f00-54dc-4aab-8a25-5e34223ae70a",
+          "comment": "Espera 2 segundos (2000 ms) para que se vea cada paso",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "0fcc2780-c676-4061-929f-f6950d26cacc",
+          "comment": "2. Escribir el correo del coordinador",
+          "command": "type",
+          "target": "id=login-correo",
+          "targets": [],
+          "value": "admin@sena.edu.co"
+        },
+        {
+          "id": "f195efe7-91c8-46c3-88d2-8cfb888bb120",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "bd2fbfab-4de1-40e6-8551-5f981d7eb283",
+          "comment": "3. Escribir la contraseña",
+          "command": "type",
+          "target": "id=login-contrasena",
+          "targets": [],
+          "value": "Admin123*"
+        },
+        {
+          "id": "b060c70a-fee0-4092-8add-e27fae7bc16f",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "0c74e30a-b4d1-4037-b49e-99cda93a6d10",
+          "comment": "4. Clic en Iniciar sesión",
+          "command": "click",
+          "target": "css=button[type=\"submit\"]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "982880ca-e83b-44ce-a6ed-b8366fb831b1",
+          "comment": "5. Entró al panel: el saludo lleva su nombre",
+          "command": "waitForElementVisible",
+          "target": "xpath=//h1[contains(.,'Coordinador')]",
+          "targets": [],
+          "value": "30000"
+        },
+        {
+          "id": "031d4eb6-65dc-45eb-ac24-b797ba8b7995",
+          "comment": "",
+          "command": "assertElementPresent",
+          "target": "xpath=//h1[contains(.,'Coordinador')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "5a34962d-3584-4e8d-99be-43c1a97e831f",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "fde40f5d-2b4d-4855-99f8-94f4e5d0f3b0",
+          "comment": "6. Entrar a Fichas desde el menú",
+          "command": "click",
+          "target": "css=a[href=\"/fichas\"]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "7e89e35e-39b6-48de-9ac9-c8f03756ebdb",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "57f1ebac-8298-42c7-b8ca-e659a7bd449b",
+          "comment": "7. Abrir el formulario + Nueva ficha",
+          "command": "click",
+          "target": "xpath=//button[contains(.,'Nueva ficha')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "55e5c97d-ba3b-4def-bf2c-fefd97ad7a7e",
+          "comment": "El número no se puede repetir: se arma con la hora y se guarda en la variable numeroFicha",
+          "command": "executeScript",
+          "target": "return '9' + String(Date.now()).slice(-6)",
+          "targets": [],
+          "value": "numeroFicha"
+        },
+        {
+          "id": "dccddba1-7ddb-4aa4-aa1a-18a89ee4eea9",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "id=ficha-numero",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "9c420f12-259b-48db-b6c2-9b32829472a5",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "ece415f3-b609-424e-b0f8-04b1793cfdc3",
+          "comment": "8. Llenar el formulario: número de ficha",
+          "command": "type",
+          "target": "id=ficha-numero",
+          "targets": [],
+          "value": "${numeroFicha}"
+        },
+        {
+          "id": "b0ed1dc7-32a8-4c31-93b8-6d3527556776",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "3100fa2a-328f-4ce9-9b11-dedc9000fb45",
+          "comment": "Jornada",
+          "command": "select",
+          "target": "id=ficha-jornada",
+          "targets": [],
+          "value": "label=Tarde"
+        },
+        {
+          "id": "57e8015b-18ae-4239-874a-382a3a383e40",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "cb79dd49-7f3e-4703-9cb4-e87394ca5395",
+          "comment": "Programa de formación",
+          "command": "type",
+          "target": "id=ficha-programa",
+          "targets": [],
+          "value": "Análisis y Desarrollo de Software"
+        },
+        {
+          "id": "f1308db8-dd83-45ca-a2c3-e4c4d671b057",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "1eef4438-36c4-462f-8fd4-f5298d83251f",
+          "comment": "Fecha de inicio: se asigna con un script porque el formato del campo de fecha cambia según el idioma de Chrome",
+          "command": "executeScript",
+          "target": "var campo = document.getElementById('ficha-inicio'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(campo, '2027-01-18'); campo.dispatchEvent(new Event('input', { bubbles: true }));",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "9a62f367-09f0-4bbe-ae02-c818e1ecb4d3",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "63151e23-a88f-4ae4-8108-3c6f83934198",
+          "comment": "Fecha de fin: se asigna con un script porque el formato del campo de fecha cambia según el idioma de Chrome",
+          "command": "executeScript",
+          "target": "var campo = document.getElementById('ficha-fin'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(campo, '2028-12-15'); campo.dispatchEvent(new Event('input', { bubbles: true }));",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "96a8f062-ce18-4bc5-86d2-11c60cc02c83",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "620bc864-7500-49cf-9107-f5d2db0afebc",
+          "comment": "Los periodos llegan del servidor",
+          "command": "waitForElementPresent",
+          "target": "xpath=//select[@id='ficha-periodo']/option[normalize-space()='2026-2']",
+          "targets": [],
+          "value": "30000"
+        },
+        {
+          "id": "2586c13c-6d54-45b6-b35e-af53ab984fd1",
+          "comment": "Periodo",
+          "command": "select",
+          "target": "id=ficha-periodo",
+          "targets": [],
+          "value": "label=2026-2"
+        },
+        {
+          "id": "bcac7955-7d61-48f3-9881-4861ea084488",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "48bb322c-87a5-47b9-b76b-c9d9564e5221",
+          "comment": "Los instructores llegan del servidor",
+          "command": "waitForElementPresent",
+          "target": "xpath=//select[@id='ficha-instructor']/option[normalize-space()='Cristian Buitrago']",
+          "targets": [],
+          "value": "30000"
+        },
+        {
+          "id": "b0434902-dd43-4898-81a1-1c85f2078486",
+          "comment": "Instructor titular",
+          "command": "select",
+          "target": "id=ficha-instructor",
+          "targets": [],
+          "value": "label=Cristian Buitrago"
+        },
+        {
+          "id": "1f2b65c8-a6a4-431b-8dfc-d3bcb464b2f8",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "9620a1d6-7288-4e95-b14d-60da2a330369",
+          "comment": "9. Clic en Crear ficha",
+          "command": "click",
+          "target": "xpath=//button[text()='Crear ficha']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "244c7ba9-553e-418f-acc1-0eef633c3896",
+          "comment": "10. La ficha nueva aparece en la tabla",
+          "command": "waitForElementVisible",
+          "target": "xpath=//td/b[text()='${numeroFicha}']",
+          "targets": [],
+          "value": "30000"
+        },
+        {
+          "id": "175e54c1-80e2-485a-8f05-22043d8632d6",
+          "comment": "y sale el aviso Ficha creada",
+          "command": "assertElementPresent",
+          "target": "xpath=//*[contains(text(),'Ficha creada')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "acbbaa80-44e5-455d-acfe-5fcd6184625c",
+          "comment": "",
+          "command": "pause",
+          "target": "2000",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "3c8851e2-ef2b-47ab-99d0-77845a95208c",
+          "comment": "",
+          "command": "echo",
+          "target": "PRUEBA SUPERADA: el coordinador creó la ficha ${numeroFicha}",
+          "targets": [],
+          "value": ""
+        }
+      ]
+    }
+  ],
+  "suites": [
+    {
+      "id": "49090431-aa8e-4238-b21c-1a15e6f24426",
+      "name": "AsistenciaApp - Ejemplo 2",
+      "persistSession": false,
+      "parallel": false,
+      "timeout": 300,
+      "tests": [
+        "412ba03c-94b0-471c-8c96-4e31de3f9dbf"
+      ]
+    }
+  ],
+  "urls": [
+    "https://asistenciaapp.onrender.com/"
+  ],
+  "plugins": []
+}

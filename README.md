@@ -315,10 +315,10 @@ npm test
 
 ### Pruebas de interfaz con Selenium
 
-La carpeta `pruebas-selenium/` trae dos ejemplos sobre la versión publicada: iniciar
-sesión, y además crear una ficha con el rol coordinador. Están en Python y como proyecto
-de la extensión Selenium IDE (`AsistenciaApp.side`). Cómo correrlos:
-[pruebas-selenium/README.md](pruebas-selenium/README.md).
+La carpeta `pruebas-selenium/` trae dos ejemplos sobre la versión publicada, cada uno en
+su carpeta y de dos formas, con código Python y como proyecto de la extensión Selenium
+IDE (`.side`): iniciar sesión, y además crear una ficha con el rol coordinador. Guía paso
+a paso para exponerlos: [pruebas-selenium/README.md](pruebas-selenium/README.md).
 
 ## Estructura del proyecto
 
