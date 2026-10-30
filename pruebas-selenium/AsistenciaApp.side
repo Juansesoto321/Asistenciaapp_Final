@@ -1,0 +1,309 @@
+{
+  "id": "cb52b7af-8132-4118-ba1a-711b817ef5ac",
+  "version": "2.0",
+  "name": "AsistenciaApp",
+  "url": "https://asistenciaapp.onrender.com",
+  "tests": [
+    {
+      "id": "1a74dcff-f7e2-487c-9030-0c5b326dea86",
+      "name": "Ejemplo 1 - Iniciar sesion",
+      "commands": [
+        {
+          "id": "f16881b5-372b-4723-853d-3b4e79e5e408",
+          "comment": "1. Abrir el link de la aplicación",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "da7d6017-84f6-4986-8b85-96254169f077",
+          "comment": "",
+          "command": "setWindowSize",
+          "target": "1366x768",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "d3af252b-8465-4267-b6c6-2dd84318773c",
+          "comment": "Render gratis puede tardar ~1 minuto en despertar",
+          "command": "waitForElementVisible",
+          "target": "id=login-correo",
+          "targets": [],
+          "value": "90000"
+        },
+        {
+          "id": "16555a8a-2420-4a91-9e50-16926ae4cc88",
+          "comment": "2. Correo del coordinador",
+          "command": "type",
+          "target": "id=login-correo",
+          "targets": [],
+          "value": "admin@sena.edu.co"
+        },
+        {
+          "id": "e0fa4a65-efe0-4b91-980b-ba1be09feefb",
+          "comment": "Contraseña",
+          "command": "type",
+          "target": "id=login-contrasena",
+          "targets": [],
+          "value": "Admin123*"
+        },
+        {
+          "id": "416b16f8-f21e-4ce2-9a1c-d028debf66a9",
+          "comment": "3. Clic en Iniciar sesión",
+          "command": "click",
+          "target": "css=button[type=\"submit\"]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "9e925a46-4e33-467a-86dc-aca752466209",
+          "comment": "4. Entró al panel: el saludo lleva su nombre",
+          "command": "waitForElementVisible",
+          "target": "xpath=//h1[contains(.,'Coordinador')]",
+          "targets": [],
+          "value": "30000"
+        },
+        {
+          "id": "dbb289c2-97f6-40ef-b969-e71b1f1af407",
+          "comment": "",
+          "command": "assertElementPresent",
+          "target": "xpath=//h1[contains(.,'Coordinador')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "70503427-0762-4f1e-9460-0c5ebfbe3a7b",
+          "comment": "",
+          "command": "echo",
+          "target": "PRUEBA SUPERADA: el coordinador inició sesión y llegó al panel",
+          "targets": [],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "71f6b662-96dd-4d4d-9e3d-9958574f8e22",
+      "name": "Ejemplo 2 - Crear ficha (coordinador)",
+      "commands": [
+        {
+          "id": "f16881b5-372b-4723-853d-3b4e79e5e408",
+          "comment": "1. Abrir el link de la aplicación",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "da7d6017-84f6-4986-8b85-96254169f077",
+          "comment": "",
+          "command": "setWindowSize",
+          "target": "1366x768",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "d3af252b-8465-4267-b6c6-2dd84318773c",
+          "comment": "Render gratis puede tardar ~1 minuto en despertar",
+          "command": "waitForElementVisible",
+          "target": "id=login-correo",
+          "targets": [],
+          "value": "90000"
+        },
+        {
+          "id": "16555a8a-2420-4a91-9e50-16926ae4cc88",
+          "comment": "2. Correo del coordinador",
+          "command": "type",
+          "target": "id=login-correo",
+          "targets": [],
+          "value": "admin@sena.edu.co"
+        },
+        {
+          "id": "e0fa4a65-efe0-4b91-980b-ba1be09feefb",
+          "comment": "Contraseña",
+          "command": "type",
+          "target": "id=login-contrasena",
+          "targets": [],
+          "value": "Admin123*"
+        },
+        {
+          "id": "416b16f8-f21e-4ce2-9a1c-d028debf66a9",
+          "comment": "3. Clic en Iniciar sesión",
+          "command": "click",
+          "target": "css=button[type=\"submit\"]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "9e925a46-4e33-467a-86dc-aca752466209",
+          "comment": "4. Entró al panel: el saludo lleva su nombre",
+          "command": "waitForElementVisible",
+          "target": "xpath=//h1[contains(.,'Coordinador')]",
+          "targets": [],
+          "value": "30000"
+        },
+        {
+          "id": "dbb289c2-97f6-40ef-b969-e71b1f1af407",
+          "comment": "",
+          "command": "assertElementPresent",
+          "target": "xpath=//h1[contains(.,'Coordinador')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "c540c829-e5a0-46a7-8731-c91a8d0b3ea0",
+          "comment": "5. Entrar a Fichas desde el menú",
+          "command": "click",
+          "target": "css=a[href=\"/fichas\"]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "240508ad-2631-449a-bf6a-4391c0fe7d6c",
+          "comment": "6. Abrir el formulario + Nueva ficha",
+          "command": "click",
+          "target": "xpath=//button[contains(.,'Nueva ficha')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "aaf2d986-7ed9-46ed-b925-8c361c96061e",
+          "comment": "El número no se puede repetir: se arma con la hora",
+          "command": "executeScript",
+          "target": "return '9' + String(Date.now()).slice(-6)",
+          "targets": [],
+          "value": "numeroFicha"
+        },
+        {
+          "id": "b08dda01-519d-48fc-8004-e8bd9a328040",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "id=ficha-numero",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "1ac9f957-8ae3-476b-ae0f-6d0604dfaa87",
+          "comment": "7. Llenar el formulario",
+          "command": "type",
+          "target": "id=ficha-numero",
+          "targets": [],
+          "value": "${numeroFicha}"
+        },
+        {
+          "id": "e5ffb260-94ce-4e32-9fb0-d67faa53f682",
+          "comment": "",
+          "command": "select",
+          "target": "id=ficha-jornada",
+          "targets": [],
+          "value": "label=Tarde"
+        },
+        {
+          "id": "d4f75256-12cb-469d-a0f6-f9ed0ae5a7be",
+          "comment": "",
+          "command": "type",
+          "target": "id=ficha-programa",
+          "targets": [],
+          "value": "Análisis y Desarrollo de Software"
+        },
+        {
+          "id": "0d6f1202-240d-4e0d-8645-a2ca564fe02b",
+          "comment": "Fecha 2027-01-18: se asigna con un script porque el formato del campo de fecha cambia según el idioma de Chrome",
+          "command": "executeScript",
+          "target": "var campo = document.getElementById('ficha-inicio'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(campo, '2027-01-18'); campo.dispatchEvent(new Event('input', { bubbles: true }));",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "d6bd9f7b-9f23-49a8-a3af-b0aec24362a1",
+          "comment": "Fecha 2028-12-15: se asigna con un script porque el formato del campo de fecha cambia según el idioma de Chrome",
+          "command": "executeScript",
+          "target": "var campo = document.getElementById('ficha-fin'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(campo, '2028-12-15'); campo.dispatchEvent(new Event('input', { bubbles: true }));",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "27afaa1a-2120-4798-aaec-9ac67c36b207",
+          "comment": "Los periodos llegan del servidor",
+          "command": "waitForElementPresent",
+          "target": "xpath=//select[@id='ficha-periodo']/option[normalize-space()='2026-2']",
+          "targets": [],
+          "value": "30000"
+        },
+        {
+          "id": "8c0c5f6b-b3e5-40eb-8cc7-73ffe9748b4c",
+          "comment": "",
+          "command": "select",
+          "target": "id=ficha-periodo",
+          "targets": [],
+          "value": "label=2026-2"
+        },
+        {
+          "id": "99822bb0-b797-49d6-8838-ed92e206fb4d",
+          "comment": "Los instructores llegan del servidor",
+          "command": "waitForElementPresent",
+          "target": "xpath=//select[@id='ficha-instructor']/option[normalize-space()='Cristian Buitrago']",
+          "targets": [],
+          "value": "30000"
+        },
+        {
+          "id": "7d37bc6a-602f-4e13-bf84-dd861e619108",
+          "comment": "",
+          "command": "select",
+          "target": "id=ficha-instructor",
+          "targets": [],
+          "value": "label=Cristian Buitrago"
+        },
+        {
+          "id": "0125001d-0109-4873-9c15-3b64283bbfa2",
+          "comment": "8. Clic en Crear ficha",
+          "command": "click",
+          "target": "xpath=//button[text()='Crear ficha']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "214bfcba-0ce6-4504-9c2f-d5ba307ad517",
+          "comment": "9. La ficha nueva aparece en la tabla",
+          "command": "waitForElementVisible",
+          "target": "xpath=//td/b[text()='${numeroFicha}']",
+          "targets": [],
+          "value": "30000"
+        },
+        {
+          "id": "58acaf9c-bdf1-4cff-aadc-207e3a304be7",
+          "comment": "y sale el aviso Ficha creada",
+          "command": "assertElementPresent",
+          "target": "xpath=//*[contains(text(),'Ficha creada')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "21b864c8-6bb2-4d66-a839-d9f5d6256061",
+          "comment": "",
+          "command": "echo",
+          "target": "PRUEBA SUPERADA: el coordinador creó la ficha ${numeroFicha}",
+          "targets": [],
+          "value": ""
+        }
+      ]
+    }
+  ],
+  "suites": [
+    {
+      "id": "fa8b06be-7951-45ca-98df-d998a1e73eb7",
+      "name": "Ejemplos AsistenciaApp",
+      "persistSession": false,
+      "parallel": false,
+      "timeout": 300,
+      "tests": [
+        "1a74dcff-f7e2-487c-9030-0c5b326dea86",
+        "71f6b662-96dd-4d4d-9e3d-9958574f8e22"
+      ]
+    }
+  ],
+  "urls": [
+    "https://asistenciaapp.onrender.com/"
+  ],
+  "plugins": []
+}

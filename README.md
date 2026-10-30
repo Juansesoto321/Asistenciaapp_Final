@@ -313,6 +313,13 @@ npm test
 - Si no hay PostgreSQL disponible, las de integración se omiten en vez de fallar. Para
   usar otro servidor define `DATABASE_URL_PRUEBAS`.
 
+### Pruebas de interfaz con Selenium
+
+La carpeta `pruebas-selenium/` trae dos ejemplos sobre la versión publicada: iniciar
+sesión, y además crear una ficha con el rol coordinador. Están en Python y como proyecto
+de la extensión Selenium IDE (`AsistenciaApp.side`). Cómo correrlos:
+[pruebas-selenium/README.md](pruebas-selenium/README.md).
+
 ## Estructura del proyecto
 
 ```
@@ -348,6 +355,7 @@ asistenciaapp/
 │   ├── servicios/               # api.js (HTTP) y socket.js (tiempo real)
 │   └── utilidades/              # fechas de los horarios (próxima clase) y formato de textos
 ├── simulador-lector/simulador.js
+├── pruebas-selenium/            # Ejemplos de Selenium: Python y Selenium IDE (.side)
 └── docker-compose.yml
 ```
 
