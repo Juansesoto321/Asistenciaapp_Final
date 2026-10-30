@@ -317,8 +317,8 @@ npm test
 ### Pruebas de interfaz con Selenium
 
 La carpeta `pruebas-selenium/` trae dos ejemplos sobre la versión publicada, cada uno en
-su carpeta y de dos formas, con código Python y como proyecto de la extensión Selenium
-IDE (`.side`): iniciar sesión, y además crear una ficha con el rol coordinador. Guía paso
+su carpeta y de dos formas, con código Python y con una extensión de Chrome (Katalon Recorder,
+o Selenium IDE con los `.side`): iniciar sesión, y además crear una ficha con el rol coordinador. Guía paso
 a paso para exponerlos: [pruebas-selenium/README.md](pruebas-selenium/README.md).
 
 ## Estructura del proyecto
@@ -356,7 +356,7 @@ asistenciaapp/
 │   ├── servicios/               # api.js (HTTP) y socket.js (tiempo real)
 │   └── utilidades/              # fechas de los horarios (próxima clase) y formato de textos
 ├── simulador-lector/simulador.js
-├── pruebas-selenium/            # Ejemplos de Selenium: Python y Selenium IDE (.side)
+├── pruebas-selenium/            # Ejemplos de Selenium: Python, Katalon Recorder y Selenium IDE
 └── docker-compose.yml
 ```
 

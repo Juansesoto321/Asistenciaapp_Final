@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta content="text/html; charset=UTF-8" http-equiv="content-type" />
+<title>AsistenciaApp - Ejemplo 1</title>
+</head>
+<body>
+<table cellpadding="1" cellspacing="1" border="1">
+<thead>
+<tr><td rowspan="1" colspan="3">Ejemplo 1 - Iniciar sesion</td></tr>
+</thead>
+<tbody>
+<tr><td>echo</td><td>1. Abriendo el link de la aplicación<datalist></datalist></td><td></td></tr>
+<tr><td>open</td><td>https://asistenciaapp-nvj4.onrender.com/<datalist></datalist></td><td></td></tr>
+<tr><td>setTimeout</td><td>60000<datalist></datalist></td><td></td></tr>
+<tr><td>waitForVisible</td><td>id=login-correo<datalist></datalist></td><td></td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>2. Escribiendo el correo del coordinador<datalist></datalist></td><td></td></tr>
+<tr><td>type</td><td>id=login-correo<datalist></datalist></td><td>admin@sena.edu.co</td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>3. Escribiendo la contraseña<datalist></datalist></td><td></td></tr>
+<tr><td>type</td><td>id=login-contrasena<datalist></datalist></td><td>Admin123*</td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>4. Clic en Iniciar sesión<datalist></datalist></td><td></td></tr>
+<tr><td>click</td><td>css=button[type="submit"]<datalist></datalist></td><td></td></tr>
+<tr><td>waitForElementPresent</td><td>xpath=//h1[contains(.,'Coordinador')]<datalist></datalist></td><td></td></tr>
+<tr><td>assertElementPresent</td><td>xpath=//h1[contains(.,'Coordinador')]<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>5. Entró al panel<datalist></datalist></td><td></td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>PRUEBA SUPERADA: el coordinador inició sesión y llegó al panel<datalist></datalist></td><td></td></tr>
+</tbody></table>
+</body>
+</html>

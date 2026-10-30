@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta content="text/html; charset=UTF-8" http-equiv="content-type" />
+<title>AsistenciaApp - Ejemplo 2</title>
+</head>
+<body>
+<table cellpadding="1" cellspacing="1" border="1">
+<thead>
+<tr><td rowspan="1" colspan="3">Ejemplo 2 - Crear ficha (coordinador)</td></tr>
+</thead>
+<tbody>
+<tr><td>echo</td><td>1. Abriendo el link de la aplicación<datalist></datalist></td><td></td></tr>
+<tr><td>open</td><td>https://asistenciaapp-nvj4.onrender.com/<datalist></datalist></td><td></td></tr>
+<tr><td>setTimeout</td><td>60000<datalist></datalist></td><td></td></tr>
+<tr><td>waitForVisible</td><td>id=login-correo<datalist></datalist></td><td></td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>2. Escribiendo el correo del coordinador<datalist></datalist></td><td></td></tr>
+<tr><td>type</td><td>id=login-correo<datalist></datalist></td><td>admin@sena.edu.co</td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>3. Escribiendo la contraseña<datalist></datalist></td><td></td></tr>
+<tr><td>type</td><td>id=login-contrasena<datalist></datalist></td><td>Admin123*</td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>4. Clic en Iniciar sesión<datalist></datalist></td><td></td></tr>
+<tr><td>click</td><td>css=button[type="submit"]<datalist></datalist></td><td></td></tr>
+<tr><td>waitForElementPresent</td><td>xpath=//h1[contains(.,'Coordinador')]<datalist></datalist></td><td></td></tr>
+<tr><td>assertElementPresent</td><td>xpath=//h1[contains(.,'Coordinador')]<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>5. Entró al panel<datalist></datalist></td><td></td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>6. Entrando a Fichas desde el menú<datalist></datalist></td><td></td></tr>
+<tr><td>click</td><td>css=a[href="/fichas"]<datalist></datalist></td><td></td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>7. Abriendo el formulario + Nueva ficha<datalist></datalist></td><td></td></tr>
+<tr><td>click</td><td>xpath=//button[contains(.,'Nueva ficha')]<datalist></datalist></td><td></td></tr>
+<tr><td>runScript</td><td>return '9' + String(Date.now()).slice(-6)<datalist></datalist></td><td>numeroFicha</td></tr>
+<tr><td>waitForVisible</td><td>id=ficha-numero<datalist></datalist></td><td></td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>8. Número de ficha: ${numeroFicha}<datalist></datalist></td><td></td></tr>
+<tr><td>type</td><td>id=ficha-numero<datalist></datalist></td><td>${numeroFicha}</td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>   Jornada: Tarde<datalist></datalist></td><td></td></tr>
+<tr><td>select</td><td>id=ficha-jornada<datalist></datalist></td><td>label=Tarde</td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>   Programa: Análisis y Desarrollo de Software<datalist></datalist></td><td></td></tr>
+<tr><td>type</td><td>id=ficha-programa<datalist></datalist></td><td>Análisis y Desarrollo de Software</td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>   Fecha de inicio: 18/01/2027<datalist></datalist></td><td></td></tr>
+<tr><td>runScript</td><td>var campo = document.getElementById('ficha-inicio'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(campo, '2027-01-18'); campo.dispatchEvent(new Event('input', { bubbles: true }));<datalist></datalist></td><td></td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>   Fecha de fin: 15/12/2028<datalist></datalist></td><td></td></tr>
+<tr><td>runScript</td><td>var campo = document.getElementById('ficha-fin'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(campo, '2028-12-15'); campo.dispatchEvent(new Event('input', { bubbles: true }));<datalist></datalist></td><td></td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>   Periodo: 2026-2<datalist></datalist></td><td></td></tr>
+<tr><td>waitForElementPresent</td><td>xpath=//select[@id='ficha-periodo']/option[normalize-space()='2026-2']<datalist></datalist></td><td></td></tr>
+<tr><td>select</td><td>id=ficha-periodo<datalist></datalist></td><td>label=2026-2</td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>   Instructor titular: Cristian Buitrago<datalist></datalist></td><td></td></tr>
+<tr><td>waitForElementPresent</td><td>xpath=//select[@id='ficha-instructor']/option[normalize-space()='Cristian Buitrago']<datalist></datalist></td><td></td></tr>
+<tr><td>select</td><td>id=ficha-instructor<datalist></datalist></td><td>label=Cristian Buitrago</td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>9. Clic en Crear ficha<datalist></datalist></td><td></td></tr>
+<tr><td>click</td><td>xpath=//button[text()='Crear ficha']<datalist></datalist></td><td></td></tr>
+<tr><td>waitForElementPresent</td><td>xpath=//td/b[text()='${numeroFicha}']<datalist></datalist></td><td></td></tr>
+<tr><td>assertElementPresent</td><td>xpath=//*[contains(text(),'Ficha creada')]<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>10. La ficha ${numeroFicha} aparece en la tabla<datalist></datalist></td><td></td></tr>
+<tr><td>pause</td><td>2000<datalist></datalist></td><td></td></tr>
+<tr><td>echo</td><td>PRUEBA SUPERADA: el coordinador creó la ficha ${numeroFicha}<datalist></datalist></td><td></td></tr>
+</tbody></table>
+</body>
+</html>
